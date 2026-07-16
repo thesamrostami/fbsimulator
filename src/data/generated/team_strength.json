@@ -1,0 +1,2077 @@
+{
+ "meta": {
+  "source": "https://github.com/martj42/international_results (results.csv)",
+  "retrievedAt": "2026-07-16",
+  "license": "Dataset dedicated to the public domain (CC0) by its maintainer; attribution appreciated.",
+  "model": "Dixon-Coles-style weighted Poisson (attack/defence per team, home advantage, no rho)",
+  "config": {
+   "cutoff": "2022-07-01",
+   "halfLifeYears": 1.5,
+   "ridge": 3,
+   "iterations": 150,
+   "damping": 0.5
+  },
+  "matchesUsed": 4071,
+  "mu": 0.176,
+  "homeAdvantage": 0.2423,
+  "avgGoalsPerSideNeutral": 1.1924
+ },
+ "teams": {
+  "Spain": {
+   "attack": 1.1164,
+   "defence": 1.2739,
+   "expGoalsFor": 3.6412,
+   "expGoalsAgainst": 0.3336,
+   "matches": 55,
+   "lastMatch": "2026-07-14"
+  },
+  "Argentina": {
+   "attack": 1.1262,
+   "defence": 1.0251,
+   "expGoalsFor": 3.6771,
+   "expGoalsAgainst": 0.4278,
+   "matches": 56,
+   "lastMatch": "2026-07-15"
+  },
+  "France": {
+   "attack": 1.0169,
+   "defence": 1.0348,
+   "expGoalsFor": 3.2966,
+   "expGoalsAgainst": 0.4237,
+   "matches": 56,
+   "lastMatch": "2026-07-14"
+  },
+  "Portugal": {
+   "attack": 0.9642,
+   "defence": 0.9185,
+   "expGoalsFor": 3.1274,
+   "expGoalsAgainst": 0.4759,
+   "matches": 53,
+   "lastMatch": "2026-07-06"
+  },
+  "Colombia": {
+   "attack": 0.8211,
+   "defence": 1.0585,
+   "expGoalsFor": 2.7104,
+   "expGoalsAgainst": 0.4137,
+   "matches": 50,
+   "lastMatch": "2026-07-07"
+  },
+  "England": {
+   "attack": 0.9255,
+   "defence": 0.9306,
+   "expGoalsFor": 3.0084,
+   "expGoalsAgainst": 0.4702,
+   "matches": 55,
+   "lastMatch": "2026-07-15"
+  },
+  "Morocco": {
+   "attack": 0.6946,
+   "defence": 1.1509,
+   "expGoalsFor": 2.3883,
+   "expGoalsAgainst": 0.3772,
+   "matches": 67,
+   "lastMatch": "2026-07-09"
+  },
+  "Brazil": {
+   "attack": 0.9667,
+   "defence": 0.8548,
+   "expGoalsFor": 3.135,
+   "expGoalsAgainst": 0.5072,
+   "matches": 49,
+   "lastMatch": "2026-07-05"
+  },
+  "Japan": {
+   "attack": 0.895,
+   "defence": 0.8479,
+   "expGoalsFor": 2.9181,
+   "expGoalsAgainst": 0.5107,
+   "matches": 52,
+   "lastMatch": "2026-06-29"
+  },
+  "Netherlands": {
+   "attack": 1.0116,
+   "defence": 0.7011,
+   "expGoalsFor": 3.2792,
+   "expGoalsAgainst": 0.5915,
+   "matches": 51,
+   "lastMatch": "2026-06-29"
+  },
+  "Germany": {
+   "attack": 1.0929,
+   "defence": 0.5736,
+   "expGoalsFor": 3.557,
+   "expGoalsAgainst": 0.6719,
+   "matches": 50,
+   "lastMatch": "2026-06-29"
+  },
+  "Belgium": {
+   "attack": 0.8965,
+   "defence": 0.7541,
+   "expGoalsFor": 2.9226,
+   "expGoalsAgainst": 0.5609,
+   "matches": 50,
+   "lastMatch": "2026-07-10"
+  },
+  "Norway": {
+   "attack": 1.0353,
+   "defence": 0.5011,
+   "expGoalsFor": 3.3577,
+   "expGoalsAgainst": 0.7224,
+   "matches": 44,
+   "lastMatch": "2026-07-11"
+  },
+  "Mexico": {
+   "attack": 0.662,
+   "defence": 0.8704,
+   "expGoalsFor": 2.3116,
+   "expGoalsAgainst": 0.4993,
+   "matches": 70,
+   "lastMatch": "2026-07-05"
+  },
+  "Switzerland": {
+   "attack": 0.7872,
+   "defence": 0.7121,
+   "expGoalsFor": 2.6201,
+   "expGoalsAgainst": 0.585,
+   "matches": 52,
+   "lastMatch": "2026-07-11"
+  },
+  "Senegal": {
+   "attack": 0.8458,
+   "defence": 0.5746,
+   "expGoalsFor": 2.7781,
+   "expGoalsAgainst": 0.6712,
+   "matches": 58,
+   "lastMatch": "2026-07-01"
+  },
+  "Australia": {
+   "attack": 0.4946,
+   "defence": 0.8503,
+   "expGoalsFor": 1.9553,
+   "expGoalsAgainst": 0.5095,
+   "matches": 48,
+   "lastMatch": "2026-07-03"
+  },
+  "Ecuador": {
+   "attack": 0.2062,
+   "defence": 1.1353,
+   "expGoalsFor": 1.4655,
+   "expGoalsAgainst": 0.3831,
+   "matches": 49,
+   "lastMatch": "2026-06-30"
+  },
+  "Denmark": {
+   "attack": 0.6549,
+   "defence": 0.6675,
+   "expGoalsFor": 2.2953,
+   "expGoalsAgainst": 0.6117,
+   "matches": 43,
+   "lastMatch": "2026-06-07"
+  },
+  "Uruguay": {
+   "attack": 0.4507,
+   "defence": 0.8713,
+   "expGoalsFor": 1.8713,
+   "expGoalsAgainst": 0.4989,
+   "matches": 47,
+   "lastMatch": "2026-06-26"
+  },
+  "Russia": {
+   "attack": 0.5173,
+   "defence": 0.7838,
+   "expGoalsFor": 2.0003,
+   "expGoalsAgainst": 0.5445,
+   "matches": 28,
+   "lastMatch": "2026-06-09"
+  },
+  "Croatia": {
+   "attack": 0.7152,
+   "defence": 0.5834,
+   "expGoalsFor": 2.438,
+   "expGoalsAgainst": 0.6654,
+   "matches": 51,
+   "lastMatch": "2026-07-02"
+  },
+  "Italy": {
+   "attack": 0.659,
+   "defence": 0.604,
+   "expGoalsFor": 2.3048,
+   "expGoalsAgainst": 0.6518,
+   "matches": 42,
+   "lastMatch": "2026-06-07"
+  },
+  "Nigeria": {
+   "attack": 0.6253,
+   "defence": 0.6212,
+   "expGoalsFor": 2.2284,
+   "expGoalsAgainst": 0.6407,
+   "matches": 51,
+   "lastMatch": "2026-06-10"
+  },
+  "Austria": {
+   "attack": 0.6688,
+   "defence": 0.5511,
+   "expGoalsFor": 2.3275,
+   "expGoalsAgainst": 0.6872,
+   "matches": 45,
+   "lastMatch": "2026-07-02"
+  },
+  "Ivory Coast": {
+   "attack": 0.4336,
+   "defence": 0.7643,
+   "expGoalsFor": 1.8397,
+   "expGoalsAgainst": 0.5553,
+   "matches": 52,
+   "lastMatch": "2026-06-30"
+  },
+  "Algeria": {
+   "attack": 0.6851,
+   "defence": 0.5088,
+   "expGoalsFor": 2.3656,
+   "expGoalsAgainst": 0.7169,
+   "matches": 58,
+   "lastMatch": "2026-07-02"
+  },
+  "Iran": {
+   "attack": 0.5578,
+   "defence": 0.6234,
+   "expGoalsFor": 2.0828,
+   "expGoalsAgainst": 0.6393,
+   "matches": 49,
+   "lastMatch": "2026-06-26"
+  },
+  "Egypt": {
+   "attack": 0.4879,
+   "defence": 0.6883,
+   "expGoalsFor": 1.9422,
+   "expGoalsAgainst": 0.5991,
+   "matches": 55,
+   "lastMatch": "2026-07-07"
+  },
+  "DR Congo": {
+   "attack": 0.3284,
+   "defence": 0.828,
+   "expGoalsFor": 1.656,
+   "expGoalsAgainst": 0.521,
+   "matches": 51,
+   "lastMatch": "2026-07-01"
+  },
+  "Northern Cyprus": {
+   "attack": 0.8675,
+   "defence": 0.2602,
+   "expGoalsFor": 2.8391,
+   "expGoalsAgainst": 0.9192,
+   "matches": 3,
+   "lastMatch": "2026-06-06"
+  },
+  "Canada": {
+   "attack": 0.5065,
+   "defence": 0.6054,
+   "expGoalsFor": 1.9787,
+   "expGoalsAgainst": 0.6509,
+   "matches": 55,
+   "lastMatch": "2026-07-04"
+  },
+  "Turkey": {
+   "attack": 0.6673,
+   "defence": 0.4411,
+   "expGoalsFor": 2.324,
+   "expGoalsAgainst": 0.7671,
+   "matches": 46,
+   "lastMatch": "2026-06-25"
+  },
+  "Greece": {
+   "attack": 0.5105,
+   "defence": 0.5748,
+   "expGoalsFor": 1.9866,
+   "expGoalsAgainst": 0.6711,
+   "matches": 38,
+   "lastMatch": "2026-06-07"
+  },
+  "Paraguay": {
+   "attack": 0.2537,
+   "defence": 0.8063,
+   "expGoalsFor": 1.5368,
+   "expGoalsAgainst": 0.5324,
+   "matches": 43,
+   "lastMatch": "2026-07-04"
+  },
+  "South Korea": {
+   "attack": 0.5152,
+   "defence": 0.5248,
+   "expGoalsFor": 1.9961,
+   "expGoalsAgainst": 0.7055,
+   "matches": 54,
+   "lastMatch": "2026-06-24"
+  },
+  "United States": {
+   "attack": 0.666,
+   "defence": 0.3729,
+   "expGoalsFor": 2.321,
+   "expGoalsAgainst": 0.8213,
+   "matches": 65,
+   "lastMatch": "2026-07-06"
+  },
+  "Scotland": {
+   "attack": 0.4347,
+   "defence": 0.5279,
+   "expGoalsFor": 1.8417,
+   "expGoalsAgainst": 0.7034,
+   "matches": 44,
+   "lastMatch": "2026-06-24"
+  },
+  "Mali": {
+   "attack": 0.1951,
+   "defence": 0.7555,
+   "expGoalsFor": 1.4493,
+   "expGoalsAgainst": 0.5602,
+   "matches": 40,
+   "lastMatch": "2026-06-04"
+  },
+  "Isle of Man": {
+   "attack": 0.8491,
+   "defence": 0.0672,
+   "expGoalsFor": 2.7872,
+   "expGoalsAgainst": 1.1149,
+   "matches": 9,
+   "lastMatch": "2025-07-18"
+  },
+  "Sweden": {
+   "attack": 0.7433,
+   "defence": 0.1616,
+   "expGoalsFor": 2.5075,
+   "expGoalsAgainst": 1.0145,
+   "matches": 45,
+   "lastMatch": "2026-06-30"
+  },
+  "Venezuela": {
+   "attack": 0.4477,
+   "defence": 0.4493,
+   "expGoalsFor": 1.8658,
+   "expGoalsAgainst": 0.7608,
+   "matches": 40,
+   "lastMatch": "2026-06-09"
+  },
+  "Ukraine": {
+   "attack": 0.506,
+   "defence": 0.3763,
+   "expGoalsFor": 1.9778,
+   "expGoalsAgainst": 0.8184,
+   "matches": 40,
+   "lastMatch": "2026-06-07"
+  },
+  "Chile": {
+   "attack": 0.4297,
+   "defence": 0.4398,
+   "expGoalsFor": 1.8324,
+   "expGoalsAgainst": 0.7681,
+   "matches": 40,
+   "lastMatch": "2026-06-09"
+  },
+  "Kosovo": {
+   "attack": 0.3747,
+   "defence": 0.486,
+   "expGoalsFor": 1.7344,
+   "expGoalsAgainst": 0.7334,
+   "matches": 37,
+   "lastMatch": "2026-06-07"
+  },
+  "Tamil Eelam": {
+   "attack": 0.3834,
+   "defence": 0.4723,
+   "expGoalsFor": 1.7495,
+   "expGoalsAgainst": 0.7435,
+   "matches": 6,
+   "lastMatch": "2025-07-04"
+  },
+  "Cameroon": {
+   "attack": 0.2289,
+   "defence": 0.5843,
+   "expGoalsFor": 1.499,
+   "expGoalsAgainst": 0.6648,
+   "matches": 44,
+   "lastMatch": "2026-03-31"
+  },
+  "Poland": {
+   "attack": 0.4125,
+   "defence": 0.3739,
+   "expGoalsFor": 1.8012,
+   "expGoalsAgainst": 0.8205,
+   "matches": 44,
+   "lastMatch": "2026-06-03"
+  },
+  "Romania": {
+   "attack": 0.3338,
+   "defence": 0.4494,
+   "expGoalsFor": 1.665,
+   "expGoalsAgainst": 0.7607,
+   "matches": 42,
+   "lastMatch": "2026-06-06"
+  },
+  "Georgia": {
+   "attack": 0.4497,
+   "defence": 0.311,
+   "expGoalsFor": 1.8694,
+   "expGoalsAgainst": 0.8737,
+   "matches": 40,
+   "lastMatch": "2026-06-05"
+  },
+  "Ghana": {
+   "attack": 0.2214,
+   "defence": 0.5329,
+   "expGoalsFor": 1.488,
+   "expGoalsAgainst": 0.6998,
+   "matches": 46,
+   "lastMatch": "2026-07-03"
+  },
+  "South Africa": {
+   "attack": 0.2217,
+   "defence": 0.5196,
+   "expGoalsFor": 1.4884,
+   "expGoalsAgainst": 0.7092,
+   "matches": 60,
+   "lastMatch": "2026-06-28"
+  },
+  "Panama": {
+   "attack": 0.3778,
+   "defence": 0.3514,
+   "expGoalsFor": 1.7398,
+   "expGoalsAgainst": 0.8391,
+   "matches": 63,
+   "lastMatch": "2026-06-27"
+  },
+  "Slovenia": {
+   "attack": 0.0634,
+   "defence": 0.6559,
+   "expGoalsFor": 1.2705,
+   "expGoalsAgainst": 0.6188,
+   "matches": 43,
+   "lastMatch": "2026-06-07"
+  },
+  "Cape Verde": {
+   "attack": 0.2845,
+   "defence": 0.4213,
+   "expGoalsFor": 1.5848,
+   "expGoalsAgainst": 0.7824,
+   "matches": 45,
+   "lastMatch": "2026-07-03"
+  },
+  "Czech Republic": {
+   "attack": 0.4618,
+   "defence": 0.244,
+   "expGoalsFor": 1.8923,
+   "expGoalsAgainst": 0.9342,
+   "matches": 44,
+   "lastMatch": "2026-06-24"
+  },
+  "Republic of Ireland": {
+   "attack": 0.1699,
+   "defence": 0.5216,
+   "expGoalsFor": 1.4132,
+   "expGoalsAgainst": 0.7077,
+   "matches": 39,
+   "lastMatch": "2026-06-05"
+  },
+  "Serbia": {
+   "attack": 0.2675,
+   "defence": 0.4177,
+   "expGoalsFor": 1.5581,
+   "expGoalsAgainst": 0.7852,
+   "matches": 43,
+   "lastMatch": "2026-06-04"
+  },
+  "Hungary": {
+   "attack": 0.2725,
+   "defence": 0.4063,
+   "expGoalsFor": 1.5659,
+   "expGoalsAgainst": 0.7943,
+   "matches": 41,
+   "lastMatch": "2026-06-09"
+  },
+  "Jersey": {
+   "attack": 0.5707,
+   "defence": 0.1029,
+   "expGoalsFor": 2.1099,
+   "expGoalsAgainst": 1.0758,
+   "matches": 8,
+   "lastMatch": "2025-07-18"
+  },
+  "Burkina Faso": {
+   "attack": 0.4257,
+   "defence": 0.2471,
+   "expGoalsFor": 1.8252,
+   "expGoalsAgainst": 0.9313,
+   "matches": 49,
+   "lastMatch": "2026-06-09"
+  },
+  "Jordan": {
+   "attack": 0.4805,
+   "defence": 0.1761,
+   "expGoalsFor": 1.928,
+   "expGoalsAgainst": 0.9999,
+   "matches": 57,
+   "lastMatch": "2026-06-27"
+  },
+  "New Zealand": {
+   "attack": 0.5448,
+   "defence": 0.0968,
+   "expGoalsFor": 2.056,
+   "expGoalsAgainst": 1.0824,
+   "matches": 38,
+   "lastMatch": "2026-06-26"
+  },
+  "Costa Rica": {
+   "attack": 0.4399,
+   "defence": 0.1947,
+   "expGoalsFor": 1.8513,
+   "expGoalsAgainst": 0.9815,
+   "matches": 53,
+   "lastMatch": "2026-06-10"
+  },
+  "Israel": {
+   "attack": 0.5061,
+   "defence": 0.128,
+   "expGoalsFor": 1.9779,
+   "expGoalsAgainst": 1.0492,
+   "matches": 35,
+   "lastMatch": "2026-06-03"
+  },
+  "Wales": {
+   "attack": 0.2852,
+   "defence": 0.3462,
+   "expGoalsFor": 1.5859,
+   "expGoalsAgainst": 0.8434,
+   "matches": 39,
+   "lastMatch": "2026-06-06"
+  },
+  "Slovakia": {
+   "attack": 0.2501,
+   "defence": 0.3653,
+   "expGoalsFor": 1.5313,
+   "expGoalsAgainst": 0.8275,
+   "matches": 42,
+   "lastMatch": "2026-06-05"
+  },
+  "Ynys Môn": {
+   "attack": 0.206,
+   "defence": 0.4085,
+   "expGoalsFor": 1.4652,
+   "expGoalsAgainst": 0.7925,
+   "matches": 6,
+   "lastMatch": "2025-07-17"
+  },
+  "Iceland": {
+   "attack": 0.4331,
+   "defence": 0.179,
+   "expGoalsFor": 1.8387,
+   "expGoalsAgainst": 0.997,
+   "matches": 45,
+   "lastMatch": "2026-06-09"
+  },
+  "Northern Ireland": {
+   "attack": 0.1311,
+   "defence": 0.4709,
+   "expGoalsFor": 1.3595,
+   "expGoalsAgainst": 0.7446,
+   "matches": 36,
+   "lastMatch": "2026-06-08"
+  },
+  "Basque Country": {
+   "attack": 0.3475,
+   "defence": 0.2437,
+   "expGoalsFor": 1.688,
+   "expGoalsAgainst": 0.9345,
+   "matches": 2,
+   "lastMatch": "2025-11-15"
+  },
+  "Guinea": {
+   "attack": 0.2385,
+   "defence": 0.351,
+   "expGoalsFor": 1.5136,
+   "expGoalsAgainst": 0.8394,
+   "matches": 38,
+   "lastMatch": "2026-06-04"
+  },
+  "Angola": {
+   "attack": 0.097,
+   "defence": 0.4894,
+   "expGoalsFor": 1.3139,
+   "expGoalsAgainst": 0.7309,
+   "matches": 47,
+   "lastMatch": "2026-06-09"
+  },
+  "Haiti": {
+   "attack": 0.4386,
+   "defence": 0.1012,
+   "expGoalsFor": 1.8488,
+   "expGoalsAgainst": 1.0777,
+   "matches": 37,
+   "lastMatch": "2026-06-24"
+  },
+  "Uzbekistan": {
+   "attack": 0.2662,
+   "defence": 0.2679,
+   "expGoalsFor": 1.5561,
+   "expGoalsAgainst": 0.9122,
+   "matches": 49,
+   "lastMatch": "2026-06-27"
+  },
+  "United Arab Emirates": {
+   "attack": 0.2242,
+   "defence": 0.3074,
+   "expGoalsFor": 1.492,
+   "expGoalsAgainst": 0.8769,
+   "matches": 48,
+   "lastMatch": "2025-12-15"
+  },
+  "Saudi Arabia": {
+   "attack": 0.0577,
+   "defence": 0.4612,
+   "expGoalsFor": 1.2633,
+   "expGoalsAgainst": 0.7518,
+   "matches": 71,
+   "lastMatch": "2026-06-26"
+  },
+  "Székely Land": {
+   "attack": 0.4491,
+   "defence": 0.0431,
+   "expGoalsFor": 1.8685,
+   "expGoalsAgainst": 1.142,
+   "matches": 2,
+   "lastMatch": "2023-07-02"
+  },
+  "Tunisia": {
+   "attack": 0.2272,
+   "defence": 0.262,
+   "expGoalsFor": 1.4965,
+   "expGoalsAgainst": 0.9176,
+   "matches": 55,
+   "lastMatch": "2026-06-25"
+  },
+  "Albania": {
+   "attack": -0.0912,
+   "defence": 0.575,
+   "expGoalsFor": 1.0884,
+   "expGoalsAgainst": 0.6709,
+   "matches": 42,
+   "lastMatch": "2026-06-06"
+  },
+  "Peru": {
+   "attack": -0.0837,
+   "defence": 0.5646,
+   "expGoalsFor": 1.0967,
+   "expGoalsAgainst": 0.678,
+   "matches": 40,
+   "lastMatch": "2026-06-08"
+  },
+  "Bosnia and Herzegovina": {
+   "attack": 0.1979,
+   "defence": 0.2254,
+   "expGoalsFor": 1.4533,
+   "expGoalsAgainst": 0.9518,
+   "matches": 39,
+   "lastMatch": "2026-07-01"
+  },
+  "Honduras": {
+   "attack": 0.0691,
+   "defence": 0.286,
+   "expGoalsFor": 1.2777,
+   "expGoalsAgainst": 0.8958,
+   "matches": 47,
+   "lastMatch": "2026-06-06"
+  },
+  "Syria": {
+   "attack": 0.1446,
+   "defence": 0.2082,
+   "expGoalsFor": 1.3779,
+   "expGoalsAgainst": 0.9683,
+   "matches": 43,
+   "lastMatch": "2026-06-05"
+  },
+  "Iraq": {
+   "attack": 0.1338,
+   "defence": 0.2177,
+   "expGoalsFor": 1.3631,
+   "expGoalsAgainst": 0.9591,
+   "matches": 56,
+   "lastMatch": "2026-06-26"
+  },
+  "Jamaica": {
+   "attack": 0.0049,
+   "defence": 0.3458,
+   "expGoalsFor": 1.1983,
+   "expGoalsAgainst": 0.8438,
+   "matches": 57,
+   "lastMatch": "2026-06-06"
+  },
+  "Niger": {
+   "attack": 0.2003,
+   "defence": 0.1378,
+   "expGoalsFor": 1.4568,
+   "expGoalsAgainst": 1.0389,
+   "matches": 34,
+   "lastMatch": "2026-06-08"
+  },
+  "Finland": {
+   "attack": 0.0985,
+   "defence": 0.2329,
+   "expGoalsFor": 1.3158,
+   "expGoalsAgainst": 0.9446,
+   "matches": 40,
+   "lastMatch": "2026-06-05"
+  },
+  "Libya": {
+   "attack": -0.0115,
+   "defence": 0.3221,
+   "expGoalsFor": 1.1788,
+   "expGoalsAgainst": 0.864,
+   "matches": 32,
+   "lastMatch": "2026-03-31"
+  },
+  "Shetland": {
+   "attack": 0.3002,
+   "defence": 0.0078,
+   "expGoalsFor": 1.6099,
+   "expGoalsAgainst": 1.1831,
+   "matches": 7,
+   "lastMatch": "2025-07-17"
+  },
+  "Suriname": {
+   "attack": 0.0449,
+   "defence": 0.2371,
+   "expGoalsFor": 1.2472,
+   "expGoalsAgainst": 0.9407,
+   "matches": 30,
+   "lastMatch": "2026-03-26"
+  },
+  "Gambia": {
+   "attack": 0.3785,
+   "defence": -0.1024,
+   "expGoalsFor": 1.7411,
+   "expGoalsAgainst": 1.3209,
+   "matches": 29,
+   "lastMatch": "2026-05-29"
+  },
+  "Zanzibar": {
+   "attack": -0.0941,
+   "defence": 0.3392,
+   "expGoalsFor": 1.0853,
+   "expGoalsAgainst": 0.8494,
+   "matches": 4,
+   "lastMatch": "2025-01-13"
+  },
+  "Isle of Wight": {
+   "attack": 0.1223,
+   "defence": 0.1123,
+   "expGoalsFor": 1.3476,
+   "expGoalsAgainst": 1.0657,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "Belarus": {
+   "attack": 0.1649,
+   "defence": 0.0635,
+   "expGoalsFor": 1.4062,
+   "expGoalsAgainst": 1.119,
+   "matches": 38,
+   "lastMatch": "2026-06-09"
+  },
+  "Thailand": {
+   "attack": 0.166,
+   "defence": 0.0617,
+   "expGoalsFor": 1.4077,
+   "expGoalsAgainst": 1.121,
+   "matches": 56,
+   "lastMatch": "2026-06-09"
+  },
+  "Togo": {
+   "attack": 0.0266,
+   "defence": 0.1985,
+   "expGoalsFor": 1.2246,
+   "expGoalsAgainst": 0.9777,
+   "matches": 29,
+   "lastMatch": "2026-06-09"
+  },
+  "Benin": {
+   "attack": 0.0945,
+   "defence": 0.1157,
+   "expGoalsFor": 1.3106,
+   "expGoalsAgainst": 1.0621,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Zambia": {
+   "attack": 0.0281,
+   "defence": 0.1733,
+   "expGoalsFor": 1.2263,
+   "expGoalsAgainst": 1.0026,
+   "matches": 40,
+   "lastMatch": "2026-03-31"
+  },
+  "Rwanda": {
+   "attack": -0.2329,
+   "defence": 0.4291,
+   "expGoalsFor": 0.9446,
+   "expGoalsAgainst": 0.7763,
+   "matches": 28,
+   "lastMatch": "2026-03-30"
+  },
+  "Bolivia": {
+   "attack": 0.0727,
+   "defence": 0.1002,
+   "expGoalsFor": 1.2823,
+   "expGoalsAgainst": 1.0787,
+   "matches": 44,
+   "lastMatch": "2026-06-10"
+  },
+  "Elba Island": {
+   "attack": 0.0888,
+   "defence": 0.0742,
+   "expGoalsFor": 1.3031,
+   "expGoalsAgainst": 1.1071,
+   "matches": 1,
+   "lastMatch": "2022-07-16"
+  },
+  "Guatemala": {
+   "attack": 0.1598,
+   "defence": 0.003,
+   "expGoalsFor": 1.399,
+   "expGoalsAgainst": 1.1889,
+   "matches": 54,
+   "lastMatch": "2026-06-07"
+  },
+  "Zimbabwe": {
+   "attack": 0.0122,
+   "defence": 0.1495,
+   "expGoalsFor": 1.207,
+   "expGoalsAgainst": 1.0268,
+   "matches": 26,
+   "lastMatch": "2026-05-30"
+  },
+  "Guernsey": {
+   "attack": 0.0448,
+   "defence": 0.1034,
+   "expGoalsFor": 1.247,
+   "expGoalsAgainst": 1.0753,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "Dominican Republic": {
+   "attack": 0.222,
+   "defence": -0.077,
+   "expGoalsFor": 1.4888,
+   "expGoalsAgainst": 1.2879,
+   "matches": 35,
+   "lastMatch": "2026-06-03"
+  },
+  "Oman": {
+   "attack": -0.1739,
+   "defence": 0.3163,
+   "expGoalsFor": 1.002,
+   "expGoalsAgainst": 0.8691,
+   "matches": 55,
+   "lastMatch": "2026-06-05"
+  },
+  "Madagascar": {
+   "attack": 0.2033,
+   "defence": -0.0628,
+   "expGoalsFor": 1.4613,
+   "expGoalsAgainst": 1.2697,
+   "matches": 35,
+   "lastMatch": "2026-06-02"
+  },
+  "Chameria": {
+   "attack": 0.1683,
+   "defence": -0.0494,
+   "expGoalsFor": 1.411,
+   "expGoalsAgainst": 1.2527,
+   "matches": 2,
+   "lastMatch": "2023-07-01"
+  },
+  "North Macedonia": {
+   "attack": -0.0566,
+   "defence": 0.1683,
+   "expGoalsFor": 1.1268,
+   "expGoalsAgainst": 1.0077,
+   "matches": 39,
+   "lastMatch": "2026-06-01"
+  },
+  "Bulgaria": {
+   "attack": 0.1254,
+   "defence": -0.0159,
+   "expGoalsFor": 1.3517,
+   "expGoalsAgainst": 1.2115,
+   "matches": 38,
+   "lastMatch": "2026-06-05"
+  },
+  "Tanzania": {
+   "attack": -0.2628,
+   "defence": 0.3643,
+   "expGoalsFor": 0.9168,
+   "expGoalsAgainst": 0.8284,
+   "matches": 39,
+   "lastMatch": "2026-03-29"
+  },
+  "New Caledonia": {
+   "attack": 0.0159,
+   "defence": 0.083,
+   "expGoalsFor": 1.2115,
+   "expGoalsAgainst": 1.0974,
+   "matches": 18,
+   "lastMatch": "2026-03-26"
+  },
+  "Uganda": {
+   "attack": 0.0448,
+   "defence": 0.0536,
+   "expGoalsFor": 1.2471,
+   "expGoalsAgainst": 1.1302,
+   "matches": 34,
+   "lastMatch": "2025-12-30"
+  },
+  "Comoros": {
+   "attack": -0.0634,
+   "defence": 0.1579,
+   "expGoalsFor": 1.1192,
+   "expGoalsAgainst": 1.0183,
+   "matches": 48,
+   "lastMatch": "2026-06-09"
+  },
+  "Gabon": {
+   "attack": 0.2239,
+   "defence": -0.1341,
+   "expGoalsFor": 1.4916,
+   "expGoalsAgainst": 1.3635,
+   "matches": 33,
+   "lastMatch": "2026-03-30"
+  },
+  "Curaçao": {
+   "attack": 0.1126,
+   "defence": -0.0313,
+   "expGoalsFor": 1.3345,
+   "expGoalsAgainst": 1.2303,
+   "matches": 39,
+   "lastMatch": "2026-06-25"
+  },
+  "Orkney": {
+   "attack": 0.0845,
+   "defence": -0.0048,
+   "expGoalsFor": 1.2975,
+   "expGoalsAgainst": 1.1982,
+   "matches": 7,
+   "lastMatch": "2025-07-17"
+  },
+  "North Korea": {
+   "attack": 0.0379,
+   "defence": 0.041,
+   "expGoalsFor": 1.2384,
+   "expGoalsAgainst": 1.1444,
+   "matches": 18,
+   "lastMatch": "2025-06-10"
+  },
+  "Palestine": {
+   "attack": -0.2066,
+   "defence": 0.2764,
+   "expGoalsFor": 0.9698,
+   "expGoalsAgainst": 0.9045,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Yemen": {
+   "attack": 0.3107,
+   "defence": -0.2436,
+   "expGoalsFor": 1.6268,
+   "expGoalsAgainst": 1.5213,
+   "matches": 22,
+   "lastMatch": "2025-11-26"
+  },
+  "Kernow": {
+   "attack": 0.043,
+   "defence": 0.0186,
+   "expGoalsFor": 1.2448,
+   "expGoalsAgainst": 1.1704,
+   "matches": 1,
+   "lastMatch": "2023-07-16"
+  },
+  "Lebanon": {
+   "attack": -0.1335,
+   "defence": 0.1938,
+   "expGoalsFor": 1.0434,
+   "expGoalsAgainst": 0.9824,
+   "matches": 35,
+   "lastMatch": "2025-11-26"
+  },
+  "Tajikistan": {
+   "attack": -0.0434,
+   "defence": 0.1008,
+   "expGoalsFor": 1.1418,
+   "expGoalsAgainst": 1.0781,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Mozambique": {
+   "attack": 0.1323,
+   "defence": -0.0751,
+   "expGoalsFor": 1.361,
+   "expGoalsAgainst": 1.2853,
+   "matches": 43,
+   "lastMatch": "2026-06-09"
+  },
+  "Hitra": {
+   "attack": 0.3799,
+   "defence": -0.3288,
+   "expGoalsFor": 1.7435,
+   "expGoalsAgainst": 1.6565,
+   "matches": 4,
+   "lastMatch": "2025-07-17"
+  },
+  "Malaysia": {
+   "attack": 0.0357,
+   "defence": 0.0139,
+   "expGoalsFor": 1.2358,
+   "expGoalsAgainst": 1.176,
+   "matches": 44,
+   "lastMatch": "2025-11-18"
+  },
+  "Indonesia": {
+   "attack": 0.0197,
+   "defence": 0.0238,
+   "expGoalsFor": 1.2161,
+   "expGoalsAgainst": 1.1644,
+   "matches": 51,
+   "lastMatch": "2026-06-09"
+  },
+  "Bahrain": {
+   "attack": -0.0854,
+   "defence": 0.1263,
+   "expGoalsFor": 1.0948,
+   "expGoalsAgainst": 1.0509,
+   "matches": 50,
+   "lastMatch": "2026-06-05"
+  },
+  "Qatar": {
+   "attack": 0.1642,
+   "defence": -0.129,
+   "expGoalsFor": 1.4052,
+   "expGoalsAgainst": 1.3566,
+   "matches": 62,
+   "lastMatch": "2026-06-24"
+  },
+  "Western Isles": {
+   "attack": 0.0933,
+   "defence": -0.0664,
+   "expGoalsFor": 1.309,
+   "expGoalsAgainst": 1.2743,
+   "matches": 6,
+   "lastMatch": "2025-07-17"
+  },
+  "Gozo": {
+   "attack": -0.1153,
+   "defence": 0.1326,
+   "expGoalsFor": 1.0626,
+   "expGoalsAgainst": 1.0443,
+   "matches": 7,
+   "lastMatch": "2025-07-17"
+  },
+  "Vietnam": {
+   "attack": 0.0361,
+   "defence": -0.0217,
+   "expGoalsFor": 1.2362,
+   "expGoalsAgainst": 1.2186,
+   "matches": 45,
+   "lastMatch": "2026-03-26"
+  },
+  "China": {
+   "attack": -0.1887,
+   "defence": 0.1985,
+   "expGoalsFor": 0.9873,
+   "expGoalsAgainst": 0.9777,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Saint Barthélemy": {
+   "attack": 0.1115,
+   "defence": -0.1034,
+   "expGoalsFor": 1.333,
+   "expGoalsAgainst": 1.3223,
+   "matches": 2,
+   "lastMatch": "2023-03-10"
+  },
+  "Mayotte": {
+   "attack": -0.1563,
+   "defence": 0.163,
+   "expGoalsFor": 1.0199,
+   "expGoalsAgainst": 1.0131,
+   "matches": 2,
+   "lastMatch": "2023-08-26"
+  },
+  "Réunion": {
+   "attack": -0.1065,
+   "defence": 0.1096,
+   "expGoalsFor": 1.0719,
+   "expGoalsAgainst": 1.0686,
+   "matches": 4,
+   "lastMatch": "2023-09-02"
+  },
+  "Mauritania": {
+   "attack": -0.359,
+   "defence": 0.3404,
+   "expGoalsFor": 0.8327,
+   "expGoalsAgainst": 0.8484,
+   "matches": 39,
+   "lastMatch": "2026-06-08"
+  },
+  "Faroe Islands": {
+   "attack": -0.2804,
+   "defence": 0.2547,
+   "expGoalsFor": 0.9008,
+   "expGoalsAgainst": 0.9243,
+   "matches": 37,
+   "lastMatch": "2026-06-09"
+  },
+  "Guadeloupe": {
+   "attack": 0.0693,
+   "defence": -0.1121,
+   "expGoalsFor": 1.2779,
+   "expGoalsAgainst": 1.3338,
+   "matches": 24,
+   "lastMatch": "2025-06-24"
+  },
+  "West Papua": {
+   "attack": -0.0736,
+   "defence": 0.0293,
+   "expGoalsFor": 1.1077,
+   "expGoalsAgainst": 1.158,
+   "matches": 1,
+   "lastMatch": "2022-11-13"
+  },
+  "Sápmi": {
+   "attack": -0.0186,
+   "defence": -0.043,
+   "expGoalsFor": 1.1704,
+   "expGoalsAgainst": 1.2448,
+   "matches": 1,
+   "lastMatch": "2023-07-16"
+  },
+  "Menorca": {
+   "attack": 0.0225,
+   "defence": -0.0887,
+   "expGoalsFor": 1.2196,
+   "expGoalsAgainst": 1.303,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "Montenegro": {
+   "attack": -0.0451,
+   "defence": -0.0272,
+   "expGoalsFor": 1.1398,
+   "expGoalsAgainst": 1.2253,
+   "matches": 38,
+   "lastMatch": "2026-06-05"
+  },
+  "Padania": {
+   "attack": 0.1501,
+   "defence": -0.2377,
+   "expGoalsFor": 1.3855,
+   "expGoalsAgainst": 1.5123,
+   "matches": 3,
+   "lastMatch": "2026-06-06"
+  },
+  "Kazakhstan": {
+   "attack": -0.129,
+   "defence": 0.0372,
+   "expGoalsFor": 1.0481,
+   "expGoalsAgainst": 1.1488,
+   "matches": 39,
+   "lastMatch": "2026-06-09"
+  },
+  "Sudan": {
+   "attack": -0.3824,
+   "defence": 0.2807,
+   "expGoalsFor": 0.8135,
+   "expGoalsAgainst": 0.9006,
+   "matches": 36,
+   "lastMatch": "2026-01-03"
+  },
+  "Sierra Leone": {
+   "attack": -0.0681,
+   "defence": -0.0345,
+   "expGoalsFor": 1.1139,
+   "expGoalsAgainst": 1.2343,
+   "matches": 29,
+   "lastMatch": "2026-06-09"
+  },
+  "Kenya": {
+   "attack": -0.0603,
+   "defence": -0.0511,
+   "expGoalsFor": 1.1226,
+   "expGoalsAgainst": 1.2549,
+   "matches": 31,
+   "lastMatch": "2026-06-04"
+  },
+  "Kuwait": {
+   "attack": 0.0183,
+   "defence": -0.1479,
+   "expGoalsFor": 1.2144,
+   "expGoalsAgainst": 1.3825,
+   "matches": 47,
+   "lastMatch": "2026-06-05"
+  },
+  "Guyana": {
+   "attack": 0.1323,
+   "defence": -0.2706,
+   "expGoalsFor": 1.361,
+   "expGoalsAgainst": 1.5629,
+   "matches": 30,
+   "lastMatch": "2026-03-30"
+  },
+  "Galicia": {
+   "attack": -0.1172,
+   "defence": -0.0263,
+   "expGoalsFor": 1.0606,
+   "expGoalsAgainst": 1.2242,
+   "matches": 1,
+   "lastMatch": "2024-05-21"
+  },
+  "Equatorial Guinea": {
+   "attack": -0.1954,
+   "defence": 0.0499,
+   "expGoalsFor": 0.9808,
+   "expGoalsAgainst": 1.1343,
+   "matches": 39,
+   "lastMatch": "2026-06-09"
+  },
+  "Nicaragua": {
+   "attack": -0.1887,
+   "defence": 0.0431,
+   "expGoalsFor": 0.9873,
+   "expGoalsAgainst": 1.1421,
+   "matches": 39,
+   "lastMatch": "2026-06-05"
+  },
+  "Hmong": {
+   "attack": 0.1304,
+   "defence": -0.2828,
+   "expGoalsFor": 1.3585,
+   "expGoalsAgainst": 1.5821,
+   "matches": 3,
+   "lastMatch": "2023-08-08"
+  },
+  "Cyprus": {
+   "attack": -0.0448,
+   "defence": -0.1235,
+   "expGoalsFor": 1.1402,
+   "expGoalsAgainst": 1.3492,
+   "matches": 38,
+   "lastMatch": "2026-06-07"
+  },
+  "Malawi": {
+   "attack": -0.304,
+   "defence": 0.1274,
+   "expGoalsFor": 0.8798,
+   "expGoalsAgainst": 1.0497,
+   "matches": 35,
+   "lastMatch": "2026-06-09"
+  },
+  "East Turkestan": {
+   "attack": 0.3239,
+   "defence": -0.5203,
+   "expGoalsFor": 1.6486,
+   "expGoalsAgainst": 2.0063,
+   "matches": 3,
+   "lastMatch": "2025-07-04"
+  },
+  "Kyrgyzstan": {
+   "attack": -0.0954,
+   "defence": -0.1025,
+   "expGoalsFor": 1.0839,
+   "expGoalsAgainst": 1.3211,
+   "matches": 33,
+   "lastMatch": "2026-06-09"
+  },
+  "Trinidad and Tobago": {
+   "attack": -0.0127,
+   "defence": -0.2062,
+   "expGoalsFor": 1.1774,
+   "expGoalsAgainst": 1.4655,
+   "matches": 50,
+   "lastMatch": "2026-06-09"
+  },
+  "Luxembourg": {
+   "attack": -0.4511,
+   "defence": 0.232,
+   "expGoalsFor": 0.7594,
+   "expGoalsAgainst": 0.9455,
+   "matches": 36,
+   "lastMatch": "2026-06-06"
+  },
+  "Ethiopia": {
+   "attack": -0.1785,
+   "defence": -0.0576,
+   "expGoalsFor": 0.9974,
+   "expGoalsAgainst": 1.2632,
+   "matches": 27,
+   "lastMatch": "2026-06-09"
+  },
+  "Turkmenistan": {
+   "attack": -0.1164,
+   "defence": -0.1249,
+   "expGoalsFor": 1.0614,
+   "expGoalsAgainst": 1.351,
+   "matches": 19,
+   "lastMatch": "2025-11-18"
+  },
+  "Liberia": {
+   "attack": -0.164,
+   "defence": -0.0854,
+   "expGoalsFor": 1.012,
+   "expGoalsAgainst": 1.2987,
+   "matches": 30,
+   "lastMatch": "2026-06-09"
+  },
+  "Estonia": {
+   "attack": -0.2286,
+   "defence": -0.0257,
+   "expGoalsFor": 0.9487,
+   "expGoalsAgainst": 1.2235,
+   "matches": 42,
+   "lastMatch": "2026-06-09"
+  },
+  "Martinique": {
+   "attack": -0.2687,
+   "defence": -0.0037,
+   "expGoalsFor": 0.9115,
+   "expGoalsAgainst": 1.1969,
+   "matches": 21,
+   "lastMatch": "2026-03-29"
+  },
+  "Greenland": {
+   "attack": 0.1312,
+   "defence": -0.4044,
+   "expGoalsFor": 1.3596,
+   "expGoalsAgainst": 1.7866,
+   "matches": 7,
+   "lastMatch": "2026-06-06"
+  },
+  "Azerbaijan": {
+   "attack": -0.1807,
+   "defence": -0.1021,
+   "expGoalsFor": 0.9952,
+   "expGoalsAgainst": 1.3206,
+   "matches": 37,
+   "lastMatch": "2026-06-09"
+  },
+  "Tahiti": {
+   "attack": -0.1543,
+   "defence": -0.1299,
+   "expGoalsFor": 1.0219,
+   "expGoalsAgainst": 1.3578,
+   "matches": 17,
+   "lastMatch": "2025-03-21"
+  },
+  "Central African Republic": {
+   "attack": 0.0491,
+   "defence": -0.3365,
+   "expGoalsFor": 1.2523,
+   "expGoalsAgainst": 1.6694,
+   "matches": 25,
+   "lastMatch": "2026-06-09"
+  },
+  "Lesotho": {
+   "attack": -0.3179,
+   "defence": 0.0283,
+   "expGoalsFor": 0.8677,
+   "expGoalsAgainst": 1.1591,
+   "matches": 36,
+   "lastMatch": "2026-06-04"
+  },
+  "Philippines": {
+   "attack": -0.053,
+   "defence": -0.2477,
+   "expGoalsFor": 1.1309,
+   "expGoalsAgainst": 1.5275,
+   "matches": 37,
+   "lastMatch": "2026-06-09"
+  },
+  "Burundi": {
+   "attack": -0.2974,
+   "defence": -0.0263,
+   "expGoalsFor": 0.8856,
+   "expGoalsAgainst": 1.2242,
+   "matches": 25,
+   "lastMatch": "2026-05-26"
+  },
+  "Lithuania": {
+   "attack": -0.4213,
+   "defence": 0.0782,
+   "expGoalsFor": 0.7825,
+   "expGoalsAgainst": 1.1027,
+   "matches": 38,
+   "lastMatch": "2026-06-09"
+  },
+  "Puerto Rico": {
+   "attack": -0.1009,
+   "defence": -0.2462,
+   "expGoalsFor": 1.0779,
+   "expGoalsAgainst": 1.5252,
+   "matches": 29,
+   "lastMatch": "2026-06-05"
+  },
+  "El Salvador": {
+   "attack": -0.4774,
+   "defence": 0.1234,
+   "expGoalsFor": 0.7398,
+   "expGoalsAgainst": 1.054,
+   "matches": 45,
+   "lastMatch": "2026-06-06"
+  },
+  "Botswana": {
+   "attack": -0.3367,
+   "defence": -0.0203,
+   "expGoalsFor": 0.8515,
+   "expGoalsAgainst": 1.2168,
+   "matches": 38,
+   "lastMatch": "2026-03-31"
+  },
+  "Armenia": {
+   "attack": -0.0906,
+   "defence": -0.2769,
+   "expGoalsFor": 1.0892,
+   "expGoalsAgainst": 1.5729,
+   "matches": 37,
+   "lastMatch": "2026-06-09"
+  },
+  "Åland Islands": {
+   "attack": -0.1817,
+   "defence": -0.2036,
+   "expGoalsFor": 0.9943,
+   "expGoalsAgainst": 1.4617,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "Hong Kong": {
+   "attack": -0.2346,
+   "defence": -0.1601,
+   "expGoalsFor": 0.943,
+   "expGoalsAgainst": 1.3994,
+   "matches": 46,
+   "lastMatch": "2026-06-09"
+  },
+  "Falkland Islands": {
+   "attack": -0.0944,
+   "defence": -0.3054,
+   "expGoalsFor": 1.085,
+   "expGoalsAgainst": 1.6183,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "French Guiana": {
+   "attack": -0.1896,
+   "defence": -0.2256,
+   "expGoalsFor": 0.9865,
+   "expGoalsAgainst": 1.4942,
+   "matches": 16,
+   "lastMatch": "2024-11-19"
+  },
+  "Namibia": {
+   "attack": -0.4082,
+   "defence": -0.0101,
+   "expGoalsFor": 0.7928,
+   "expGoalsAgainst": 1.2045,
+   "matches": 35,
+   "lastMatch": "2026-03-28"
+  },
+  "Guinea-Bissau": {
+   "attack": -0.4923,
+   "defence": 0.0641,
+   "expGoalsFor": 0.7288,
+   "expGoalsAgainst": 1.1184,
+   "matches": 31,
+   "lastMatch": "2026-03-31"
+  },
+  "Raetia": {
+   "attack": 0.2448,
+   "defence": -0.689,
+   "expGoalsFor": 1.5231,
+   "expGoalsAgainst": 2.3749,
+   "matches": 8,
+   "lastMatch": "2026-06-06"
+  },
+  "Tibet": {
+   "attack": 0.2577,
+   "defence": -0.7161,
+   "expGoalsFor": 1.5429,
+   "expGoalsAgainst": 2.4403,
+   "matches": 5,
+   "lastMatch": "2025-07-03"
+  },
+  "Malta": {
+   "attack": -0.3677,
+   "defence": -0.1178,
+   "expGoalsFor": 0.8256,
+   "expGoalsAgainst": 1.3415,
+   "matches": 35,
+   "lastMatch": "2026-06-05"
+  },
+  "Saint Vincent and the Grenadines": {
+   "attack": -0.0323,
+   "defence": -0.4532,
+   "expGoalsFor": 1.1545,
+   "expGoalsAgainst": 1.8761,
+   "matches": 33,
+   "lastMatch": "2026-03-29"
+  },
+  "Eswatini": {
+   "attack": -0.2716,
+   "defence": -0.2262,
+   "expGoalsFor": 0.9088,
+   "expGoalsAgainst": 1.4951,
+   "matches": 32,
+   "lastMatch": "2025-10-13"
+  },
+  "Congo": {
+   "attack": -0.2358,
+   "defence": -0.2794,
+   "expGoalsFor": 0.942,
+   "expGoalsAgainst": 1.5767,
+   "matches": 18,
+   "lastMatch": "2025-10-14"
+  },
+  "Moldova": {
+   "attack": -0.2606,
+   "defence": -0.2952,
+   "expGoalsFor": 0.9188,
+   "expGoalsAgainst": 1.6019,
+   "matches": 37,
+   "lastMatch": "2026-06-09"
+  },
+  "Saint Martin": {
+   "attack": -0.0962,
+   "defence": -0.4637,
+   "expGoalsFor": 1.083,
+   "expGoalsAgainst": 1.8959,
+   "matches": 18,
+   "lastMatch": "2026-03-29"
+  },
+  "Rouet-Provence": {
+   "attack": -0.3012,
+   "defence": -0.2804,
+   "expGoalsFor": 0.8823,
+   "expGoalsAgainst": 1.5783,
+   "matches": 3,
+   "lastMatch": "2026-06-06"
+  },
+  "Tuvalu": {
+   "attack": -0.1011,
+   "defence": -0.4817,
+   "expGoalsFor": 1.0777,
+   "expGoalsAgainst": 1.9302,
+   "matches": 4,
+   "lastMatch": "2023-11-30"
+  },
+  "Latvia": {
+   "attack": -0.5004,
+   "defence": -0.1106,
+   "expGoalsFor": 0.723,
+   "expGoalsAgainst": 1.3319,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Two Sicilies": {
+   "attack": -0.1342,
+   "defence": -0.4771,
+   "expGoalsFor": 1.0427,
+   "expGoalsAgainst": 1.9214,
+   "matches": 2,
+   "lastMatch": "2023-07-02"
+  },
+  "Mauritius": {
+   "attack": -0.4812,
+   "defence": -0.1475,
+   "expGoalsFor": 0.737,
+   "expGoalsAgainst": 1.3819,
+   "matches": 28,
+   "lastMatch": "2025-10-13"
+  },
+  "Cuba": {
+   "attack": -0.3764,
+   "defence": -0.2818,
+   "expGoalsFor": 0.8183,
+   "expGoalsAgainst": 1.5806,
+   "matches": 34,
+   "lastMatch": "2026-03-29"
+  },
+  "Singapore": {
+   "attack": -0.2371,
+   "defence": -0.4369,
+   "expGoalsFor": 0.9407,
+   "expGoalsAgainst": 1.8458,
+   "matches": 41,
+   "lastMatch": "2026-06-05"
+  },
+  "Cambodia": {
+   "attack": -0.3234,
+   "defence": -0.3561,
+   "expGoalsFor": 0.8629,
+   "expGoalsAgainst": 1.7025,
+   "matches": 29,
+   "lastMatch": "2026-06-09"
+  },
+  "Canton Ticino": {
+   "attack": -0.1625,
+   "defence": -0.5459,
+   "expGoalsFor": 1.0135,
+   "expGoalsAgainst": 2.0582,
+   "matches": 5,
+   "lastMatch": "2026-06-06"
+  },
+  "Chad": {
+   "attack": -0.4675,
+   "defence": -0.2644,
+   "expGoalsFor": 0.7471,
+   "expGoalsAgainst": 1.5533,
+   "matches": 23,
+   "lastMatch": "2025-11-17"
+  },
+  "South Sudan": {
+   "attack": -0.5452,
+   "defence": -0.2145,
+   "expGoalsFor": 0.6913,
+   "expGoalsAgainst": 1.4777,
+   "matches": 25,
+   "lastMatch": "2025-11-25"
+  },
+  "Bermuda": {
+   "attack": -0.0608,
+   "defence": -0.7091,
+   "expGoalsFor": 1.122,
+   "expGoalsAgainst": 2.4231,
+   "matches": 30,
+   "lastMatch": "2026-06-06"
+  },
+  "Aruba": {
+   "attack": -0.2324,
+   "defence": -0.5489,
+   "expGoalsFor": 0.9452,
+   "expGoalsAgainst": 2.0644,
+   "matches": 22,
+   "lastMatch": "2026-06-06"
+  },
+  "Somalia": {
+   "attack": -0.672,
+   "defence": -0.1497,
+   "expGoalsFor": 0.6089,
+   "expGoalsAgainst": 1.385,
+   "matches": 16,
+   "lastMatch": "2025-11-26"
+  },
+  "India": {
+   "attack": -0.7715,
+   "defence": -0.0711,
+   "expGoalsFor": 0.5513,
+   "expGoalsAgainst": 1.2802,
+   "matches": 35,
+   "lastMatch": "2026-06-09"
+  },
+  "Belize": {
+   "attack": -0.365,
+   "defence": -0.4804,
+   "expGoalsFor": 0.8277,
+   "expGoalsAgainst": 1.9277,
+   "matches": 26,
+   "lastMatch": "2026-03-30"
+  },
+  "Saint Helena": {
+   "attack": -0.2333,
+   "defence": -0.6123,
+   "expGoalsFor": 0.9443,
+   "expGoalsAgainst": 2.1995,
+   "matches": 4,
+   "lastMatch": "2023-07-13"
+  },
+  "Fiji": {
+   "attack": -0.3331,
+   "defence": -0.5501,
+   "expGoalsFor": 0.8546,
+   "expGoalsAgainst": 2.067,
+   "matches": 31,
+   "lastMatch": "2026-06-06"
+  },
+  "Grenada": {
+   "attack": -0.366,
+   "defence": -0.5247,
+   "expGoalsFor": 0.8269,
+   "expGoalsAgainst": 2.015,
+   "matches": 32,
+   "lastMatch": "2026-05-16"
+  },
+  "Sint Maarten": {
+   "attack": -0.2708,
+   "defence": -0.6621,
+   "expGoalsFor": 0.9095,
+   "expGoalsAgainst": 2.3119,
+   "matches": 20,
+   "lastMatch": "2026-03-30"
+  },
+  "Papua New Guinea": {
+   "attack": -0.4083,
+   "defence": -0.5405,
+   "expGoalsFor": 0.7926,
+   "expGoalsAgainst": 2.0471,
+   "matches": 25,
+   "lastMatch": "2025-11-23"
+  },
+  "Vanuatu": {
+   "attack": -0.36,
+   "defence": -0.6052,
+   "expGoalsFor": 0.8319,
+   "expGoalsAgainst": 2.184,
+   "matches": 26,
+   "lastMatch": "2026-06-06"
+  },
+  "Sri Lanka": {
+   "attack": -0.8154,
+   "defence": -0.1605,
+   "expGoalsFor": 0.5276,
+   "expGoalsAgainst": 1.4,
+   "matches": 21,
+   "lastMatch": "2025-11-18"
+  },
+  "Taiwan": {
+   "attack": -0.2508,
+   "defence": -0.7322,
+   "expGoalsFor": 0.9279,
+   "expGoalsAgainst": 2.4797,
+   "matches": 23,
+   "lastMatch": "2025-11-18"
+  },
+  "Andorra": {
+   "attack": -0.9649,
+   "defence": -0.0364,
+   "expGoalsFor": 0.4543,
+   "expGoalsAgainst": 1.2365,
+   "matches": 39,
+   "lastMatch": "2026-06-07"
+  },
+  "Myanmar": {
+   "attack": -0.3333,
+   "defence": -0.7028,
+   "expGoalsFor": 0.8545,
+   "expGoalsAgainst": 2.4078,
+   "matches": 36,
+   "lastMatch": "2026-06-09"
+  },
+  "Montserrat": {
+   "attack": -0.5734,
+   "defence": -0.4762,
+   "expGoalsFor": 0.672,
+   "expGoalsAgainst": 1.9196,
+   "matches": 18,
+   "lastMatch": "2025-06-10"
+  },
+  "Barbados": {
+   "attack": -0.2649,
+   "defence": -0.7905,
+   "expGoalsFor": 0.9149,
+   "expGoalsAgainst": 2.6286,
+   "matches": 26,
+   "lastMatch": "2026-03-29"
+  },
+  "Saint Kitts and Nevis": {
+   "attack": -0.3355,
+   "defence": -0.7206,
+   "expGoalsFor": 0.8525,
+   "expGoalsAgainst": 2.4513,
+   "matches": 34,
+   "lastMatch": "2026-03-30"
+  },
+  "Gibraltar": {
+   "attack": -0.5625,
+   "defence": -0.5045,
+   "expGoalsFor": 0.6794,
+   "expGoalsAgainst": 1.9748,
+   "matches": 36,
+   "lastMatch": "2026-06-06"
+  },
+  "Nepal": {
+   "attack": -0.8022,
+   "defence": -0.2859,
+   "expGoalsFor": 0.5346,
+   "expGoalsAgainst": 1.587,
+   "matches": 30,
+   "lastMatch": "2025-11-18"
+  },
+  "Bangladesh": {
+   "attack": -0.5852,
+   "defence": -0.5107,
+   "expGoalsFor": 0.6642,
+   "expGoalsAgainst": 1.9872,
+   "matches": 34,
+   "lastMatch": "2026-06-05"
+  },
+  "Solomon Islands": {
+   "attack": -0.2818,
+   "defence": -0.8314,
+   "expGoalsFor": 0.8995,
+   "expGoalsAgainst": 2.7383,
+   "matches": 30,
+   "lastMatch": "2026-03-30"
+  },
+  "São Tomé and Príncipe": {
+   "attack": -0.4965,
+   "defence": -0.6494,
+   "expGoalsFor": 0.7258,
+   "expGoalsAgainst": 2.2828,
+   "matches": 16,
+   "lastMatch": "2025-10-13"
+  },
+  "Saint Lucia": {
+   "attack": -0.4391,
+   "defence": -0.7181,
+   "expGoalsFor": 0.7687,
+   "expGoalsAgainst": 2.4451,
+   "matches": 26,
+   "lastMatch": "2026-03-27"
+  },
+  "Djibouti": {
+   "attack": -0.501,
+   "defence": -0.6601,
+   "expGoalsFor": 0.7225,
+   "expGoalsAgainst": 2.3074,
+   "matches": 16,
+   "lastMatch": "2025-11-26"
+  },
+  "Frøya": {
+   "attack": -0.3864,
+   "defence": -0.8053,
+   "expGoalsFor": 0.8102,
+   "expGoalsAgainst": 2.6678,
+   "matches": 7,
+   "lastMatch": "2025-07-17"
+  },
+  "Dominica": {
+   "attack": -0.6032,
+   "defence": -0.61,
+   "expGoalsFor": 0.6523,
+   "expGoalsAgainst": 2.1946,
+   "matches": 21,
+   "lastMatch": "2026-03-30"
+  },
+  "British Virgin Islands": {
+   "attack": -0.6226,
+   "defence": -0.6021,
+   "expGoalsFor": 0.6398,
+   "expGoalsAgainst": 2.1773,
+   "matches": 23,
+   "lastMatch": "2026-06-06"
+  },
+  "Samoa": {
+   "attack": -0.5062,
+   "defence": -0.7753,
+   "expGoalsFor": 0.7188,
+   "expGoalsAgainst": 2.5889,
+   "matches": 14,
+   "lastMatch": "2024-11-18"
+  },
+  "Pakistan": {
+   "attack": -0.6941,
+   "defence": -0.5985,
+   "expGoalsFor": 0.5957,
+   "expGoalsAgainst": 2.1693,
+   "matches": 24,
+   "lastMatch": "2026-06-10"
+  },
+  "Laos": {
+   "attack": -0.5079,
+   "defence": -0.7917,
+   "expGoalsFor": 0.7176,
+   "expGoalsAgainst": 2.6317,
+   "matches": 23,
+   "lastMatch": "2025-11-19"
+  },
+  "Marshall Islands": {
+   "attack": -0.3787,
+   "defence": -0.9236,
+   "expGoalsFor": 0.8165,
+   "expGoalsAgainst": 3.0028,
+   "matches": 2,
+   "lastMatch": "2025-08-16"
+  },
+  "Afghanistan": {
+   "attack": -0.9382,
+   "defence": -0.3699,
+   "expGoalsFor": 0.4666,
+   "expGoalsAgainst": 1.7262,
+   "matches": 22,
+   "lastMatch": "2026-06-10"
+  },
+  "Bonaire": {
+   "attack": -0.6447,
+   "defence": -0.6894,
+   "expGoalsFor": 0.6258,
+   "expGoalsAgainst": 2.3759,
+   "matches": 19,
+   "lastMatch": "2026-06-06"
+  },
+  "Northern Mariana Islands": {
+   "attack": -0.4344,
+   "defence": -0.9174,
+   "expGoalsFor": 0.7723,
+   "expGoalsAgainst": 2.9842,
+   "matches": 6,
+   "lastMatch": "2024-04-07"
+  },
+  "Tonga": {
+   "attack": -0.4985,
+   "defence": -0.8609,
+   "expGoalsFor": 0.7243,
+   "expGoalsAgainst": 2.8204,
+   "matches": 8,
+   "lastMatch": "2024-09-09"
+  },
+  "Guam": {
+   "attack": -0.4657,
+   "defence": -0.9779,
+   "expGoalsFor": 0.7485,
+   "expGoalsAgainst": 3.1703,
+   "matches": 10,
+   "lastMatch": "2026-06-06"
+  },
+  "Maldives": {
+   "attack": -0.838,
+   "defence": -0.6498,
+   "expGoalsFor": 0.5158,
+   "expGoalsAgainst": 2.2837,
+   "matches": 23,
+   "lastMatch": "2026-06-04"
+  },
+  "United States Virgin Islands": {
+   "attack": -0.6767,
+   "defence": -0.8298,
+   "expGoalsFor": 0.6061,
+   "expGoalsAgainst": 2.7341,
+   "matches": 16,
+   "lastMatch": "2026-03-28"
+  },
+  "Cook Islands": {
+   "attack": -0.6687,
+   "defence": -0.8912,
+   "expGoalsFor": 0.6109,
+   "expGoalsAgainst": 2.9072,
+   "matches": 9,
+   "lastMatch": "2024-09-06"
+  },
+  "Cayman Islands": {
+   "attack": -0.8456,
+   "defence": -0.7323,
+   "expGoalsFor": 0.5119,
+   "expGoalsAgainst": 2.4799,
+   "matches": 20,
+   "lastMatch": "2026-06-06"
+  },
+  "San Marino": {
+   "attack": -0.8576,
+   "defence": -0.7557,
+   "expGoalsFor": 0.5058,
+   "expGoalsAgainst": 2.5387,
+   "matches": 38,
+   "lastMatch": "2026-06-09"
+  },
+  "Timor-Leste": {
+   "attack": -0.7269,
+   "defence": -0.9129,
+   "expGoalsFor": 0.5764,
+   "expGoalsAgainst": 2.9708,
+   "matches": 18,
+   "lastMatch": "2025-11-18"
+  },
+  "Antigua and Barbuda": {
+   "attack": -0.9915,
+   "defence": -0.6938,
+   "expGoalsFor": 0.4424,
+   "expGoalsAgainst": 2.3863,
+   "matches": 21,
+   "lastMatch": "2025-11-18"
+  },
+  "Liechtenstein": {
+   "attack": -1.1211,
+   "defence": -0.5927,
+   "expGoalsFor": 0.3886,
+   "expGoalsAgainst": 2.1569,
+   "matches": 37,
+   "lastMatch": "2026-06-07"
+  },
+  "Turks and Caicos Islands": {
+   "attack": -0.8874,
+   "defence": -0.8271,
+   "expGoalsFor": 0.491,
+   "expGoalsAgainst": 2.7267,
+   "matches": 14,
+   "lastMatch": "2025-08-16"
+  },
+  "Mongolia": {
+   "attack": -0.9378,
+   "defence": -0.795,
+   "expGoalsFor": 0.4668,
+   "expGoalsAgainst": 2.6404,
+   "matches": 13,
+   "lastMatch": "2026-06-05"
+  },
+  "Brunei": {
+   "attack": -0.9045,
+   "defence": -0.9689,
+   "expGoalsFor": 0.4826,
+   "expGoalsAgainst": 3.142,
+   "matches": 26,
+   "lastMatch": "2025-11-18"
+  },
+  "Bhutan": {
+   "attack": -0.9621,
+   "defence": -0.916,
+   "expGoalsFor": 0.4556,
+   "expGoalsAgainst": 2.98,
+   "matches": 19,
+   "lastMatch": "2026-06-04"
+  },
+  "Seychelles": {
+   "attack": -0.9318,
+   "defence": -1.0603,
+   "expGoalsFor": 0.4696,
+   "expGoalsAgainst": 3.4426,
+   "matches": 21,
+   "lastMatch": "2025-10-14"
+  },
+  "Bahamas": {
+   "attack": -0.6734,
+   "defence": -1.3286,
+   "expGoalsFor": 0.6081,
+   "expGoalsAgainst": 4.5021,
+   "matches": 19,
+   "lastMatch": "2026-03-29"
+  },
+  "Macau": {
+   "attack": -1.0602,
+   "defence": -1.1488,
+   "expGoalsFor": 0.413,
+   "expGoalsAgainst": 3.7611,
+   "matches": 12,
+   "lastMatch": "2026-03-29"
+  },
+  "Anguilla": {
+   "attack": -1.0604,
+   "defence": -1.1596,
+   "expGoalsFor": 0.4129,
+   "expGoalsAgainst": 3.8023,
+   "matches": 21,
+   "lastMatch": "2026-03-29"
+  },
+  "American Samoa": {
+   "attack": -0.8089,
+   "defence": -1.7622,
+   "expGoalsFor": 0.531,
+   "expGoalsAgainst": 6.9459,
+   "matches": 7,
+   "lastMatch": "2026-03-28"
+  }
+ }
+}
