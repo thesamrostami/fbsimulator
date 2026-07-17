@@ -9,7 +9,7 @@ import { buildMatchReport } from '../../services/matchReport'
 import { buildWhyThisResult } from '../../services/whyThisResult'
 import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
-import { ProbabilityBars } from '../result/ProbabilityBars'
+import { InsightPanel } from '../result/InsightPanel'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
 import { BTN_SECONDARY, FOCUS_RING } from '../../ui/theme'
@@ -144,7 +144,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
   const simBadge = sim.shootout ? 'PENS' : sim.wentToExtraTime ? 'AET' : undefined
   const simSubline = sim.shootout
     ? `${(sim.shootout.winner === 'home' ? home : away).name} won the shootout ${sim.shootout.score.home}–${sim.shootout.score.away}`
-    : undefined
+    : 'One possible night — every rerun writes a new one'
 
   const realBadge = match.real.decidedBy
   const realSubline =
@@ -170,7 +170,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <ScorePanel
-          title="Your simulation"
+          title="How it played out"
           home={home}
           away={away}
           score={sim.finalScore}
@@ -275,11 +275,27 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
 
       {tab === 'summary' && (
       <>
-      {/* Goal-by-goal comparison */}
+      {/* The insight: the 1,000-replay signal, ahead of the one-night story */}
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
+        className="mb-5 rounded-2xl border border-card-yellow/50 bg-card-yellow/5 p-6"
+      >
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h2 className="font-display text-lg font-black uppercase tracking-widest text-card-yellow">
+            {why.edited ? 'Did your changes help?' : 'What 1,000 replays say'}
+          </h2>
+          <SourceBadge kind="estimated" />
+        </div>
+        <InsightPanel match={match} monteCarlo={monteCarlo} why={why} home={home} away={away} />
+      </motion.div>
+
+      {/* Goal-by-goal comparison */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
         className="mb-5 grid gap-6 rounded-2xl border border-white/10 bg-night-2/70 p-6 sm:grid-cols-2"
       >
         <GoalMinutes title="Goals in your replay" entries={simGoalEntries} />
@@ -290,7 +306,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.18 }}
+        transition={{ delay: 0.25 }}
         className="mb-5 rounded-2xl border border-white/10 bg-night-2/70 p-6"
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -396,48 +412,34 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         </div>
       </motion.div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-white/10 bg-night-2/70 p-6"
-        >
-          <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">
-            What changed
-          </h2>
-          <ul className="space-y-3">
-            {differences.map((diff, index) => (
-              <motion.li
-                key={index}
-                initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className="flex gap-3 text-sm leading-relaxed text-floodlight/85"
-              >
-                {diff.teamId ? (
-                  <TeamFlag teamId={diff.teamId} className="mt-0.5 h-3.5 shrink-0" title="" />
-                ) : (
-                  <span aria-hidden="true">{diff.icon}</span>
-                )}
-                <span>{diff.text}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-white/10 bg-night-2/70 p-6"
-        >
-          <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">
-            1,000 replays say…
-          </h2>
-          <ProbabilityBars monteCarlo={monteCarlo} home={home} away={away} />
-        </motion.div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="rounded-2xl border border-white/10 bg-night-2/70 p-6"
+      >
+        <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">
+          What changed
+        </h2>
+        <ul className="space-y-3">
+          {differences.map((diff, index) => (
+            <motion.li
+              key={index}
+              initial={{ opacity: 0, x: -14 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 + index * 0.1 }}
+              className="flex gap-3 text-sm leading-relaxed text-floodlight/85"
+            >
+              {diff.teamId ? (
+                <TeamFlag teamId={diff.teamId} className="mt-0.5 h-3.5 shrink-0" title="" />
+              ) : (
+                <span aria-hidden="true">{diff.icon}</span>
+              )}
+              <span>{diff.text}</span>
+            </motion.li>
+          ))}
+        </ul>
+      </motion.div>
 
       {/* Share card */}
       <motion.div

@@ -8,7 +8,7 @@ import { TeamFlag } from '../components/ui/TeamFlag'
 import { FOCUS_RING } from '../ui/theme'
 import { getMatch, type PlayedMatch } from '../data/matches'
 import { TEAMS } from '../data/teams'
-import { runSimulation } from '../services/simulation'
+import { matchSimOptions, runSimulation } from '../services/simulation'
 import { buildSheet, initialMatchState, matchAppReducer } from '../state/appState'
 import { sessionSims } from '../state/sessionStore'
 
@@ -44,10 +44,7 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
     try {
       const homeSheet = buildSheet(match.home, state.lineups.home)
       const awaySheet = buildSheet(match.away, state.lineups.away)
-      const { sim, monteCarlo } = await runSimulation(homeSheet, awaySheet, {
-        knockout: true,
-        homePossession: match.real.possession.home / 100,
-      })
+      const { sim, monteCarlo } = await runSimulation(homeSheet, awaySheet, matchSimOptions(match))
       // Seed + lineups fully determine the sim: enough to re-derive the
       // match report if the user navigates away and back this session.
       sessionSims.set(match.id, { seed: sim.seed, lineups: state.lineups })
@@ -65,12 +62,7 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
     ;(async () => {
       const homeSheet = buildSheet(match.home, stored.lineups.home)
       const awaySheet = buildSheet(match.away, stored.lineups.away)
-      const { sim, monteCarlo } = await runSimulation(
-        homeSheet,
-        awaySheet,
-        { knockout: true, homePossession: match.real.possession.home / 100 },
-        stored.seed,
-      )
+      const { sim, monteCarlo } = await runSimulation(homeSheet, awaySheet, matchSimOptions(match), stored.seed)
       if (!cancelled) dispatch({ type: 'restore', sim, monteCarlo, lineups: stored.lineups })
     })()
     return () => {
