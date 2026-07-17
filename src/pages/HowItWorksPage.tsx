@@ -69,23 +69,45 @@ export function HowItWorksPage() {
           <ul className="list-disc space-y-2 pl-5">
             <li>
               <strong>International results, 1872–2026</strong> —{' '}
-              <span className="text-muted">github.com/martj42/international_results</span> (public-domain/CC0
-              dataset; retrieved {TEAM_STRENGTH_META.retrievedAt}). Contributes: the fitted team-strength
+              <a
+                href="https://github.com/martj42/international_results"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted underline underline-offset-2 transition-colors hover:text-floodlight"
+              >
+                github.com/martj42/international_results
+              </a>{' '}
+              (public-domain/CC0 dataset; retrieved {TEAM_STRENGTH_META.retrievedAt}). Contributes: the fitted team-strength
               model ({TEAM_STRENGTH_META.matchesUsed.toLocaleString('en-US')} matches from the last ~4 years),
               the empirical goal-minute distribution ({CALIBRATION_META.goalsUsed.toLocaleString('en-US')}{' '}
               goals), and the shootout record.
             </li>
             <li>
               <strong>StatsBomb Open Data</strong> —{' '}
-              <span className="text-muted">github.com/statsbomb/open-data</span> (data © StatsBomb, used with
-              credit under their open-data licence; retrieved {CALIBRATION_META.retrievedAt}). Contributes:
+              <a
+                href="https://github.com/statsbomb/open-data"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted underline underline-offset-2 transition-colors hover:text-floodlight"
+              >
+                github.com/statsbomb/open-data
+              </a>{' '}
+              (data © StatsBomb, used with credit under their open-data licence; retrieved{' '}
+              {CALIBRATION_META.retrievedAt}). Contributes:
               shot-conversion calibration from the World Cup 2022 knockout stage
               {CONVERSION_SAMPLE ? ` (${CONVERSION_SAMPLE.sample.shots} shots across ${CONVERSION_SAMPLE.sample.matches} matches)` : ''}.
             </li>
             <li>
               <strong>EA SPORTS FC 26 player ratings</strong> —{' '}
-              <span className="text-muted">unofficial community extract via Kaggle (credit: rovnez)</span>,
-              retrieved {PLAYER_RATINGS_META.retrievedAt}. {PLAYER_RATINGS_META.matched} of{' '}
+              <a
+                href="https://www.kaggle.com/datasets/rovnez/fc-26-fifa-26-player-data"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted underline underline-offset-2 transition-colors hover:text-floodlight"
+              >
+                unofficial community extract via Kaggle (credit: rovnez)
+              </a>
+              , retrieved {PLAYER_RATINGS_META.retrievedAt}. {PLAYER_RATINGS_META.matched} of{' '}
               {PLAYER_RATINGS_META.rosterSize} squad players are matched by normalized, country-constrained
               fuzzy name matching (every match and rejection is listed in the pipeline's matching report);
               matched players carry the <SourceBadge kind="fc26" short /> badge. The remaining{' '}

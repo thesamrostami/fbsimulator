@@ -18,6 +18,8 @@ npm test        # engine + data unit tests (vitest)
 npm run build   # type-check + production build
 ```
 
+Deployment (Docker + nginx with SPA fallback, security headers and CSP, or any static host) is covered in [DEPLOY.md](DEPLOY.md).
+
 ## Pages
 
 - **`/`** — animated intro under the floodlights.
