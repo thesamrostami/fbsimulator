@@ -1,42 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
-import ballWebp from '../assets/branding/FIFA-World-Cup-2026-Official-Match-Ball-PNG.png?w=640&format=webp'
-import logoWhite from '../assets/branding/tournaments_fifa-world-cup-2026--white.football-logos.cc.svg'
+import { HeroBall } from '../components/brand/HeroBall'
+import { Wordmark } from '../components/brand/Wordmark'
 import { FOCUS_RING } from '../ui/theme'
-
-/**
- * Hero ball: the official match-ball PNG (webp-compressed at build time via
- * vite-imagetools) with float + very slow rotation, a floodlight glint swept
- * as an overlay, and the breathing ground shadow.
- */
-function HeroBall() {
-  return (
-    <div className="relative w-36 sm:w-44">
-      <div className="ball-float">
-        <div className="relative overflow-hidden rounded-full">
-          <img
-            src={ballWebp}
-            alt="Official 2026 match ball"
-            width={640}
-            height={640}
-            className="ball-rotate block w-full"
-            style={{ filter: 'drop-shadow(0 14px 26px rgba(0,0,0,0.45))' }}
-          />
-          {/* Floodlight glint sweep, clipped to the ball's circle. */}
-          <div
-            aria-hidden="true"
-            className="ball-glint pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent blur-[6px]"
-          />
-        </div>
-      </div>
-      <div
-        aria-hidden="true"
-        className="ball-shadow mx-auto -mt-1 h-3.5 w-3/4 rounded-full"
-        style={{ background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,0.55), transparent 70%)' }}
-      />
-    </div>
-  )
-}
 
 export function IntroPage() {
   const navigate = useNavigate()
@@ -67,24 +33,23 @@ export function IntroPage() {
         transition={{ delay: 0.1 }}
         className="mb-5 text-xs font-bold uppercase tracking-[0.45em] text-muted sm:text-sm"
       >
-        What-If World Cup
+        The what-if knockout simulator
       </motion.p>
 
-      {/* Tournament mark (white version on the dark surface). */}
-      <motion.img
+      {/* Original wordmark lockup. */}
+      <motion.div
         initial={{ opacity: 0, scale: 0.85, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: 0.25, type: 'spring', stiffness: 200, damping: 20 }}
-        src={logoWhite}
-        alt="FIFA World Cup 2026"
-        className="h-44 w-auto sm:h-56"
-      />
+      >
+        <Wordmark />
+      </motion.div>
 
       <motion.p
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55 }}
-        className="mt-4 font-display text-lg font-black uppercase tracking-[0.3em] text-floodlight sm:text-xl"
+        className="mt-5 font-display text-lg font-black uppercase tracking-[0.3em] text-floodlight sm:text-xl"
       >
         Rewrite the knockouts
       </motion.p>
@@ -133,6 +98,15 @@ export function IntroPage() {
         <Link to="/how-it-works" className="underline underline-offset-2 transition-colors hover:text-floodlight">
           how it works
         </Link>
+      </motion.p>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.75 }}
+        className="mt-3 text-[11px] text-muted/80"
+      >
+        An independent fan project — not affiliated with, endorsed by, or sponsored by FIFA.
       </motion.p>
     </main>
   )

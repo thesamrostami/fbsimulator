@@ -2,7 +2,7 @@ const KINDS = {
   real: {
     icon: '✓',
     label: 'Real match data',
-    tooltip: 'From official 2026 World Cup match records: result, goal minutes, lineups, possession and shot counts.',
+    tooltip: 'From the public 2026 World Cup match records: result, goal minutes, lineups, possession and shot counts.',
     className: 'border-mexico/40 bg-mexico/10 text-mexico',
   },
   estimated: {

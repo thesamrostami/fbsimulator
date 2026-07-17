@@ -1,6 +1,10 @@
-# What-If World Cup Simulator
+# The Replay Cup
 
-Rewrite the 2026 World Cup knockout stage. All **13 finished matches** from the round of 16 to the France–Spain semi-final are replayable with the lineups *you* would have picked — extra time, penalty shootouts and all.
+**Rewrite the knockouts. See what could have been.**
+
+An independent, fan-made what-if simulator for the 2026 World Cup knockout stage. All **14 finished matches** from the round of 16 to the semi-finals are replayable with the lineups *you* would have picked — extra time, penalty shootouts and all.
+
+> The Replay Cup is an independent fan project and is not affiliated with, endorsed by, or sponsored by FIFA. Team names, results, and player names refer to real public information; team crests/emblems are not used. Flags are public-domain iconography via `country-flag-icons`.
 
 ## Run it
 
@@ -17,7 +21,7 @@ npm run build   # type-check + production build
 ## Pages
 
 - **`/`** — animated intro under the floodlights.
-- **`/bracket`** — the knockout tree: 8 round-of-16 ties → 4 quarter-finals → 2 semi-finals → the final, with flags, real scores and AET/PENS badges. Finished matches glow and open their editor; the England–Argentina semi and the final render locked ("Not played yet").
+- **`/bracket`** — the knockout tree: 8 round-of-16 ties → 4 quarter-finals → 2 semi-finals → the final, with flags, real scores and AET/PENS badges. Finished matches glow and open their editor; the final and the third-place play-off render locked ("Not played yet") until they're actually played.
 - **`/match/:id`** — lineup editor → animated simulation → result, for any played match.
 
 ## How it works
@@ -44,4 +48,4 @@ scripts/dist-check.ts  calibration snapshot: npx vite-node scripts/dist-check.ts
 
 The engine is UI-free and side-effect-free: `simulateMatch(home, away, seed, { knockout, homePossession })` and `runMonteCarlo(...)` could run on a server unchanged. Engine balance knobs live in `TUNING` in `src/engine/simulate.ts`.
 
-Player ratings are FC24-style judgment calls, not official data. Match results, lineups, goal minutes and possession are the real 2026 records.
+Player ratings come from an unofficial EA SPORTS FC 26 community dataset where a player could be matched, with clearly-badged editorial estimates for the rest — a video game's editorial view of ability, not official statistics. Match results, lineups, goal minutes and possession are the real 2026 public records. Full methodology, data credits and limitations live on the in-app "How it works" page.

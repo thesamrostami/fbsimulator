@@ -9,7 +9,7 @@ import { baselineFor } from './teamStrength'
  * The 2026 World Cup knockout bracket from the round of 16 onward. Every
  * played match stores its real lineups (as player ids into the shared player
  * database), the real result and the headline stats, verbatim from the
- * official records. Two fixtures had not been played when this data was
+ * public match records. Two fixtures had not been played when this data was
  * captured and render locked. Formation layouts and modifiers live in
  * formations.ts.
  */

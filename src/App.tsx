@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { SiteFooter } from './components/brand/SiteFooter'
 import { BracketPage } from './pages/BracketPage'
 import { HowItWorksPage } from './pages/HowItWorksPage'
 import { IntroPage } from './pages/IntroPage'
@@ -28,42 +29,45 @@ export default function App() {
   }, [location.pathname])
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <PageShell>
-              <IntroPage />
-            </PageShell>
-          }
-        />
-        <Route
-          path="/bracket"
-          element={
-            <PageShell>
-              <BracketPage />
-            </PageShell>
-          }
-        />
-        <Route
-          path="/match/:id"
-          element={
-            <PageShell>
-              <MatchPage />
-            </PageShell>
-          }
-        />
-        <Route
-          path="/how-it-works"
-          element={
-            <PageShell>
-              <HowItWorksPage />
-            </PageShell>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AnimatePresence>
+    <>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route
+            path="/"
+            element={
+              <PageShell>
+                <IntroPage />
+              </PageShell>
+            }
+          />
+          <Route
+            path="/bracket"
+            element={
+              <PageShell>
+                <BracketPage />
+              </PageShell>
+            }
+          />
+          <Route
+            path="/match/:id"
+            element={
+              <PageShell>
+                <MatchPage />
+              </PageShell>
+            }
+          />
+          <Route
+            path="/how-it-works"
+            element={
+              <PageShell>
+                <HowItWorksPage />
+              </PageShell>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
+      <SiteFooter />
+    </>
   )
 }

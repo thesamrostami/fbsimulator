@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import logoWhite from '../assets/branding/tournaments_fifa-world-cup-2026--white.football-logos.cc.svg'
+import { Wordmark } from '../components/brand/Wordmark'
 import { TeamFlag } from '../components/ui/TeamFlag'
 import { BRACKET_ROUNDS, MATCHES, type LockedMatch, type MatchDef, type PlayedMatch } from '../data/matches'
 import { TEAMS, type TeamInfo } from '../data/teams'
@@ -214,13 +214,13 @@ export function BracketPage() {
     <main className="min-h-screen px-4 pb-16">
       <header className="mx-auto flex max-w-6xl flex-col gap-3 pb-6 pt-8 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <motion.img
+          <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            src={logoWhite}
-            alt="FIFA World Cup 2026"
-            className="h-12 w-auto shrink-0 sm:h-14"
-          />
+            className="shrink-0"
+          >
+            <Wordmark compact />
+          </motion.div>
           <div>
             <motion.h1
               initial={{ opacity: 0, y: -12 }}

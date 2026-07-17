@@ -160,7 +160,7 @@ export function shareSummary(
   const pens = sim.shootout ? ` (${sim.shootout.score.home}–${sim.shootout.score.away} pens)` : ''
   const aet = sim.wentToExtraTime && !sim.shootout ? ' (aet)' : ''
   return [
-    `WHAT-IF WORLD CUP · ${match.stage} replay`,
+    `THE REPLAY CUP · ${match.stage} replay`,
     `${home.name} ${sim.finalScore.home}–${sim.finalScore.away} ${away.name}${aet}${pens} (my simulation)`,
     `Reality: ${home.name} ${realScoreText(match)} ${away.name}`,
     `1,000 replays: ${home.shortName} ${monteCarlo.homeWinPct}%${monteCarlo.extraTimePct === undefined ? ` · Draw ${monteCarlo.drawPct}%` : ''} · ${away.shortName} ${monteCarlo.awayWinPct}%`,
