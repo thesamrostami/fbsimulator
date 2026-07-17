@@ -1,18 +1,30 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PlayedMatch } from '../../data/matches'
 import type { TeamInfo } from '../../data/teams'
+import { HALFTIME_MINUTE, type HalftimeState } from '../../engine/simulate'
 import type { MatchEvent, SimResult } from '../../engine/types'
+import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
 import { GoalCelebration } from '../match/GoalCelebration'
+import { HalftimeBreak } from '../match/HalftimeBreak'
 import { PenaltyShootout } from '../match/PenaltyShootout'
 import { XgRaceChart } from '../match/XgRaceChart'
 import { TeamFlag } from '../ui/TeamFlag'
 import { FOCUS_RING } from '../../ui/theme'
 
 interface MatchSimProps {
-  sim: SimResult
+  match: PlayedMatch
+  /** The live match, played to 45' at kickoff. Its arrays grow in place at resume. */
+  firstHalf: HalftimeState
+  /** The full result — null until the second half has been kicked off. */
+  sim: SimResult | null
+  /** The lineups that started the match: the half-time editor's baseline. */
+  lineups: Record<SideKey, LineupState>
   home: TeamInfo
   away: TeamInfo
+  resuming: boolean
+  onResume: (lineups: Record<SideKey, LineupState>, edited: boolean) => void
   onDone: () => void
 }
 
@@ -40,29 +52,53 @@ function AnimatedDigit({ value, color }: { value: number; color: string }) {
   )
 }
 
-export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
-  const duration = sim.wentToExtraTime ? 120 : 90
+export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming, onResume, onDone }: MatchSimProps) {
+  const duration = sim?.wentToExtraTime ? 120 : 90
   const [minute, setMinute] = useState(0)
   const [playing, setPlaying] = useState(true)
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1)
   const [celebration, setCelebration] = useState<MatchEvent | null>(null)
+  const [atBreak, setAtBreak] = useState(false)
   const celebratedCount = useRef(0)
-  const finished = minute >= duration
-  const showShootout = finished && sim.shootout !== undefined
+
+  // The engine grows the first half's arrays in place at resume, so sim.events
+  // IS firstHalf.events. Copy once when the second half lands to give memos
+  // (and the xG chart's y-scale) a fresh identity — the copy keeps every
+  // element and its order, so the feed appends from 46' instead of resetting.
+  const events = useMemo(() => (sim ? [...sim.events] : firstHalf.events), [sim, firstHalf])
+  const xgTimeline = useMemo(() => (sim ? [...sim.xgTimeline] : firstHalf.xgTimeline), [sim, firstHalf])
+
+  const finished = sim !== null && minute >= duration
+  const showShootout = finished && sim?.shootout !== undefined
+  // With no second half yet, the playhead can't pass the whistle.
+  const cap = sim ? duration : HALFTIME_MINUTE
+
+  // Reaching 45' with no second half: stop and open the break.
+  useEffect(() => {
+    if (!sim && !atBreak && minute >= HALFTIME_MINUTE) setAtBreak(true)
+  }, [sim, atBreak, minute])
+
+  // The second half arrives (change confirmed or declined): play on from 45'.
+  useEffect(() => {
+    if (sim && atBreak) {
+      setAtBreak(false)
+      setPlaying(true)
+    }
+  }, [sim, atBreak])
 
   useEffect(() => {
-    if (!playing || finished) return
+    if (!playing || finished || atBreak) return
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
       const dt = (now - last) / 1000
       last = now
-      setMinute((m) => Math.min(duration, m + dt * MINUTES_PER_SECOND * speed))
+      setMinute((m) => Math.min(cap, m + dt * MINUTES_PER_SECOND * speed))
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [playing, speed, finished, duration])
+  }, [playing, speed, finished, atBreak, cap])
 
   // Linger on the final whistle, then move on — unless a shootout takes over.
   useEffect(() => {
@@ -72,10 +108,10 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
   }, [finished, showShootout, onDone])
 
   const visibleEvents = useMemo(
-    () => sim.events.filter((event) => event.minute <= minute),
-    [sim.events, minute],
+    () => events.filter((event) => event.minute <= minute),
+    [events, minute],
   )
-  const goals = useMemo(() => sim.events.filter((e) => e.type === 'goal'), [sim.events])
+  const goals = useMemo(() => events.filter((e) => e.type === 'goal'), [events])
   const visibleGoals = useMemo(() => goals.filter((g) => g.minute <= minute), [goals, minute])
 
   const score = visibleGoals.reduce(
@@ -104,17 +140,19 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
     visibleEvents.filter(
       (e) => e.side === side && (e.type === 'goal' || e.type === 'shot-saved' || e.type === 'shot-miss'),
     ).length
-  const xgNow = sim.xgTimeline[Math.min(Math.floor(minute), duration) - 1] ?? { home: 0, away: 0 }
+  const xgNow = xgTimeline[Math.min(Math.floor(minute), xgTimeline.length) - 1] ?? { home: 0, away: 0 }
   const latestRed = [...visibleEvents].reverse().find((e) => e.type === 'red-card')
   const inExtraTime = minute > 90
 
   const clockLabel = finished
-    ? sim.shootout
+    ? sim?.shootout
       ? 'PENALTIES'
-      : sim.wentToExtraTime
+      : sim?.wentToExtraTime
         ? 'AFTER EXTRA TIME'
         : 'FULL TIME'
-    : `${Math.floor(minute)}'${inExtraTime ? ' ET' : ''}`
+    : atBreak
+      ? 'HALF-TIME'
+      : `${Math.floor(minute)}'${inExtraTime ? ' ET' : ''}`
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -143,7 +181,8 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           <button
             onClick={() => setPlaying((p) => !p)}
-            className={`w-9 rounded-md border border-white/15 py-1.5 text-sm text-floodlight transition-colors hover:border-white/40 ${FOCUS_RING}`}
+            disabled={atBreak}
+            className={`w-9 rounded-md border border-white/15 py-1.5 text-sm text-floodlight transition-colors hover:border-white/40 disabled:opacity-40 ${FOCUS_RING}`}
             aria-label={playing ? 'Pause' : 'Play'}
           >
             {playing && !finished ? '⏸' : '▶'}
@@ -151,11 +190,12 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
           <input
             type="range"
             min={0}
-            max={duration}
+            max={cap}
             step={0.5}
             value={minute}
+            disabled={atBreak}
             onChange={(e) => setMinute(Number(e.target.value))}
-            className={`h-1.5 min-w-40 flex-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-card-yellow ${FOCUS_RING}`}
+            className={`h-1.5 min-w-40 flex-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-card-yellow disabled:opacity-40 ${FOCUS_RING}`}
             aria-label="Match minute"
           />
           <button
@@ -165,12 +205,15 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
           >
             {speed}×
           </button>
-          <button
-            onClick={onDone}
-            className={`rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-white/40 hover:text-floodlight ${FOCUS_RING}`}
-          >
-            Skip to result ▸
-          </button>
+          {!atBreak && (
+            <button
+              onClick={onDone}
+              disabled={resuming}
+              className={`rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-white/40 hover:text-floodlight disabled:opacity-40 ${FOCUS_RING}`}
+            >
+              Skip to result ▸
+            </button>
+          )}
         </div>
 
         {/* Live counters */}
@@ -189,8 +232,18 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
         </div>
       </div>
 
-      {showShootout && sim.shootout ? (
+      {showShootout && sim?.shootout ? (
         <PenaltyShootout shootout={sim.shootout} home={home} away={away} onDone={onDone} />
+      ) : atBreak ? (
+        <HalftimeBreak
+          match={match}
+          firstHalf={firstHalf}
+          lineups={lineups}
+          home={home}
+          away={away}
+          resuming={resuming}
+          onResume={onResume}
+        />
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
@@ -198,7 +251,7 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
               The xG race
             </h2>
             <XgRaceChart
-              timeline={sim.xgTimeline}
+              timeline={xgTimeline}
               minute={minute}
               goals={goals}
               homeName={home.shortName}
@@ -215,7 +268,7 @@ export function MatchSim({ sim, home, away, onDone }: MatchSimProps) {
             </h2>
             <div className="scroll-area flex h-[19rem] flex-col gap-2 overflow-y-auto pr-1">
               <AnimatePresence initial={false}>
-                {/* visibleEvents is a growing prefix of sim.events, so the index is a stable key. */}
+                {/* visibleEvents is a growing prefix of the events array, so the index is a stable key. */}
                 {visibleEvents
                   .map((event, index) => (
                     <EventCard key={index} event={event} homeShort={home.shortName} awayShort={away.shortName} />

@@ -68,7 +68,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-interface SideState {
+export interface SideState {
   side: Side
   sheet: TeamSheet
   onPitch: SlotAssignment[]
@@ -337,126 +337,206 @@ interface SegmentTuning {
   cardBoost: number
 }
 
+/** The minute the first half ends — where a half-time pause can happen. */
+export const HALFTIME_MINUTE = 45
+
 /**
- * Simulate one match, minute by minute. Deterministic for a given seed.
- * In knockout mode a level match runs extra time (with fatigue) and, if still
- * level, a penalty shootout.
+ * A match frozen at the half-time whistle: the live rng, the commentator
+ * riding it and both sides' mutable state, mid-stream. Internal engine handle,
+ * not part of the public SimResult shape — it holds closures and shared
+ * mutable arrays on purpose so the second half continues the exact same
+ * random stream and pushes onto the same timelines. Not serializable; a
+ * reload loses the paused match.
  */
-export function simulateMatch(
+export interface HalftimeState extends EngineContext {
+  xgTimeline: XgTimelinePoint[]
+  possessionHomeSum: number
+  minutesPlayed: number
+  options: SimOptions
+  seed: number
+}
+
+function playMinutes(state: HalftimeState, from: number, to: number, segment: SegmentTuning): void {
+  const { rng, events, home, away, options } = state
+  for (let minute = from; minute <= to; minute += 1) {
+    // Possession tug-of-war from midfield strength (momentum tilts it a little),
+    // blended toward the fixture's real possession split when one is supplied.
+    const homeMid = home.strength.midfield * boostAt(home, minute)
+    const awayMid = away.strength.midfield * boostAt(away, minute)
+    const k = TUNING.possessionExponent
+    let possHome = Math.pow(homeMid, k) / (Math.pow(homeMid, k) + Math.pow(awayMid, k))
+    if (options.homePossession !== undefined) {
+      const w = TUNING.realPossessionWeight
+      possHome = clamp((1 - w) * possHome + w * options.homePossession, 0.05, 0.95)
+    }
+    state.possessionHomeSum += possHome
+    state.minutesPlayed += 1
+
+    // Random momentum swings when nothing else is boosting.
+    if (minute > home.boostUntil && minute > away.boostUntil && rng.chance(TUNING.swingChance)) {
+      const swung = rng.weightedPick([home, away], (s) => s.strength.midfield)
+      swung.boost = TUNING.swingBoost
+      swung.boostUntil = minute + TUNING.swingMinutes
+      events.push({
+        minute,
+        type: 'momentum',
+        side: swung.side,
+        teamId: swung.sheet.teamId,
+        score: score(state),
+        commentary: state.commentary.lineAt('momentum', minute, { team: swung.sheet.name }),
+        reasoning:
+          `Random momentum swing (${TUNING.swingChance * 100}%/min when nothing else is boosting), weighted by midfield: ` +
+          `${home.sheet.name} ${Math.round(home.strength.midfield)} vs ${away.sheet.name} ${Math.round(away.strength.midfield)}. ` +
+          `${swung.sheet.name} ride it — chance rates ×${TUNING.swingBoost} for ${TUNING.swingMinutes} minutes.`,
+      })
+    }
+
+    if ((TUNING.subWindowMinutes as readonly number[]).includes(minute)) {
+      events.push({
+        minute,
+        type: 'sub-window',
+        score: score(state),
+        commentary: state.commentary.lineAt('sub-window', minute),
+      })
+    }
+
+    // Real goals cluster late in each half — scale the chance rate by the
+    // empirical minute-of-goal factor (mean 1, so volumes are unchanged).
+    const timeFactor = goalMinuteFactor(minute)
+
+    for (const [attacker, defender, possession] of [
+      [home, away, possHome],
+      [away, home, 1 - possHome],
+    ] as const) {
+      const ratio = attacker.strength.attack / Math.max(defender.strength.defence, 1)
+      const shotChance =
+        TUNING.baseShotRate *
+        segment.shotBoost *
+        timeFactor *
+        possession *
+        Math.pow(ratio, TUNING.attackDefencePower) *
+        boostAt(attacker, minute)
+      if (rng.chance(clamp(shotChance, 0, 0.6))) {
+        attemptShot(state, attacker, defender, minute, possession, segment)
+      }
+    }
+
+    attemptCards(state, home, minute, segment.cardBoost)
+    attemptCards(state, away, minute, segment.cardBoost)
+
+    state.xgTimeline.push({
+      minute,
+      home: round2(home.stats.xg),
+      away: round2(away.stats.xg),
+    })
+  }
+}
+
+/**
+ * Play minutes 1–45 and freeze the match at the whistle. The returned handle
+ * feeds resumeMatch — with the same sheets for an uninterrupted match, or
+ * with changed sheets for half-time substitutions and formation switches.
+ */
+export function playFirstHalf(
   homeSheet: TeamSheet,
   awaySheet: TeamSheet,
   seed: number,
   options: SimOptions = {},
-): SimResult {
+): HalftimeState {
   const rng = createRng(seed)
   const commentary = createCommentator(rng)
   const home = initSide('home', homeSheet)
   const away = initSide('away', awaySheet)
   markUnderdog(home, away)
-  const events: MatchEvent[] = []
-  const ctx: EngineContext = { rng, events, home, away, commentary }
-  const xgTimeline: XgTimelinePoint[] = []
+  const state: HalftimeState = {
+    rng,
+    commentary,
+    home,
+    away,
+    events: [],
+    xgTimeline: [],
+    possessionHomeSum: 0,
+    minutesPlayed: 0,
+    options,
+    seed,
+  }
 
-  events.push({
+  state.events.push({
     minute: 0,
     type: 'kickoff',
     score: { home: 0, away: 0 },
     commentary: commentary.line('kickoff', { team: homeSheet.name }),
   })
 
-  let possessionHomeSum = 0
-  let minutesPlayed = 0
+  playMinutes(state, 1, HALFTIME_MINUTE, { shotBoost: 1, cardBoost: 1 })
+  return state
+}
 
-  const playMinutes = (from: number, to: number, segment: SegmentTuning) => {
-    for (let minute = from; minute <= to; minute += 1) {
-      // Possession tug-of-war from midfield strength (momentum tilts it a little),
-      // blended toward the fixture's real possession split when one is supplied.
-      const homeMid = home.strength.midfield * boostAt(home, minute)
-      const awayMid = away.strength.midfield * boostAt(away, minute)
-      const k = TUNING.possessionExponent
-      let possHome = Math.pow(homeMid, k) / (Math.pow(homeMid, k) + Math.pow(awayMid, k))
-      if (options.homePossession !== undefined) {
-        const w = TUNING.realPossessionWeight
-        possHome = clamp((1 - w) * possHome + w * options.homePossession, 0.05, 0.95)
-      }
-      possessionHomeSum += possHome
-      minutesPlayed += 1
+/** Ids of players sent off so far — unavailable for the rest of the match. */
+export function sentOffIds(state: HalftimeState): Set<string> {
+  return new Set(
+    state.events.filter((e) => e.type === 'red-card' && e.player).map((e) => e.player!.id),
+  )
+}
 
-      // Random momentum swings when nothing else is boosting.
-      if (minute > home.boostUntil && minute > away.boostUntil && rng.chance(TUNING.swingChance)) {
-        const swung = rng.weightedPick([home, away], (s) => s.strength.midfield)
-        swung.boost = TUNING.swingBoost
-        swung.boostUntil = minute + TUNING.swingMinutes
-        events.push({
-          minute,
-          type: 'momentum',
-          side: swung.side,
-          teamId: swung.sheet.teamId,
-          score: score(ctx),
-          commentary: ctx.commentary.lineAt('momentum', minute, { team: swung.sheet.name }),
-          reasoning:
-            `Random momentum swing (${TUNING.swingChance * 100}%/min when nothing else is boosting), weighted by midfield: ` +
-            `${home.sheet.name} ${Math.round(home.strength.midfield)} vs ${away.sheet.name} ${Math.round(away.strength.midfield)}. ` +
-            `${swung.sheet.name} ride it — chance rates ×${TUNING.swingBoost} for ${TUNING.swingMinutes} minutes.`,
-        })
-      }
-
-      if ((TUNING.subWindowMinutes as readonly number[]).includes(minute)) {
-        events.push({
-          minute,
-          type: 'sub-window',
-          score: score(ctx),
-          commentary: ctx.commentary.lineAt('sub-window', minute),
-        })
-      }
-
-      // Real goals cluster late in each half — scale the chance rate by the
-      // empirical minute-of-goal factor (mean 1, so volumes are unchanged).
-      const timeFactor = goalMinuteFactor(minute)
-
-      for (const [attacker, defender, possession] of [
-        [home, away, possHome],
-        [away, home, 1 - possHome],
-      ] as const) {
-        const ratio = attacker.strength.attack / Math.max(defender.strength.defence, 1)
-        const shotChance =
-          TUNING.baseShotRate *
-          segment.shotBoost *
-          timeFactor *
-          possession *
-          Math.pow(ratio, TUNING.attackDefencePower) *
-          boostAt(attacker, minute)
-        if (rng.chance(clamp(shotChance, 0, 0.6))) {
-          attemptShot(ctx, attacker, defender, minute, possession, segment)
+/**
+ * Point a side at its second-half sheet. The new starters take the pitch
+ * (minus anyone already sent off — a dismissal is permanent) and strength
+ * re-anchors to the new lineup via the same computation initSide and
+ * applyRedCard use, so an unchanged sheet reproduces the first half's
+ * numbers exactly.
+ */
+function applySecondHalfSheet(side: SideState, sheet: TeamSheet, sentOff: ReadonlySet<string>): void {
+  side.sheet = sheet
+  side.onPitch = sheet.starters.filter((a) => !sentOff.has(a.player.id))
+  const strength = computeAnchoredStrength(sheet, side.onPitch)
+  side.strength =
+    side.stats.reds > 0
+      ? {
+          ...strength,
+          attack: strength.attack * TUNING.shortHandedAttack,
+          midfield: strength.midfield * TUNING.shortHandedMidfield,
+          defence: strength.defence * TUNING.shortHandedDefence,
         }
-      }
+      : strength
+}
 
-      attemptCards(ctx, home, minute, segment.cardBoost)
-      attemptCards(ctx, away, minute, segment.cardBoost)
-
-      xgTimeline.push({
-        minute,
-        home: round2(home.stats.xg),
-        away: round2(away.stats.xg),
-      })
-    }
+/**
+ * Play out the rest of a match frozen at half-time with (possibly changed)
+ * sheets. Continues the same rng and pushes onto the same event/timeline
+ * arrays — the first half is never re-rolled or rewritten. Consumes the
+ * state; resuming the same handle twice is a bug.
+ */
+export function resumeMatch(state: HalftimeState, newHomeSheet: TeamSheet, newAwaySheet: TeamSheet): SimResult {
+  if (state.minutesPlayed !== HALFTIME_MINUTE) {
+    throw new Error(
+      `resumeMatch expects a state frozen at ${HALFTIME_MINUTE}', got ${state.minutesPlayed} minutes played`,
+    )
   }
+  const sentOff = sentOffIds(state)
+  applySecondHalfSheet(state.home, newHomeSheet, sentOff)
+  applySecondHalfSheet(state.away, newAwaySheet, sentOff)
+  playMinutes(state, HALFTIME_MINUTE + 1, TUNING.matchMinutes, { shotBoost: 1, cardBoost: 1 })
+  return finishMatch(state)
+}
 
-  playMinutes(1, TUNING.matchMinutes, { shotBoost: 1, cardBoost: 1 })
-  const regulationScore = score(ctx)
+/** The post-90' tail every path shares: extra time, shootout, full-time, stats. */
+function finishMatch(state: HalftimeState): SimResult {
+  const { rng, commentary, events, home, away, options, xgTimeline, seed } = state
+  const regulationScore = score(state)
 
   const wentToExtraTime = Boolean(options.knockout) && home.goals === away.goals
   if (wentToExtraTime) {
     events.push({
       minute: TUNING.matchMinutes,
       type: 'extra-time',
-      score: score(ctx),
+      score: score(state),
       commentary: commentary.line('extra-time'),
       reasoning:
         `Level at 90' in a knockout tie, so 30 more minutes are played. Fatigue: chance creation ×${TUNING.extraTimeShotBoost}, ` +
         `card risk ×${TUNING.extraTimeCardBoost} for minutes 91–120.`,
     })
-    playMinutes(TUNING.matchMinutes + 1, TUNING.extraTimeMinutes, {
+    playMinutes(state, TUNING.matchMinutes + 1, TUNING.extraTimeMinutes, {
       shotBoost: TUNING.extraTimeShotBoost,
       cardBoost: TUNING.extraTimeCardBoost,
     })
@@ -469,7 +549,7 @@ export function simulateMatch(
     events.push({
       minute: endMinute,
       type: 'penalties',
-      score: score(ctx),
+      score: score(state),
       commentary: commentary.line('penalties'),
       reasoning:
         `Still level after 120', so a shootout decides it: five kicks each, then sudden death. ` +
@@ -486,16 +566,16 @@ export function simulateMatch(
   events.push({
     minute: endMinute,
     type: 'full-time',
-    score: score(ctx),
+    score: score(state),
     commentary: commentary.line('full-time'),
   })
 
-  home.stats.possession = Math.round((possessionHomeSum / minutesPlayed) * 100)
+  home.stats.possession = Math.round((state.possessionHomeSum / state.minutesPlayed) * 100)
   away.stats.possession = 100 - home.stats.possession
   home.stats.xg = round2(home.stats.xg)
   away.stats.xg = round2(away.stats.xg)
 
-  const finalScore = score(ctx)
+  const finalScore = score(state)
   let winner: Side | undefined
   if (options.knockout) {
     if (finalScore.home !== finalScore.away) {
@@ -515,6 +595,55 @@ export function simulateMatch(
     events,
     xgTimeline,
     stats: { home: home.stats, away: away.stats },
+  }
+}
+
+/**
+ * Simulate one match, minute by minute. Deterministic for a given seed.
+ * In knockout mode a level match runs extra time (with fatigue) and, if still
+ * level, a penalty shootout.
+ *
+ * Composed as first half + resume with the same sheets, so a half-time pause
+ * where nothing changes is byte-identical to an uninterrupted match — the
+ * equivalence test in simulate.test.ts holds this line.
+ */
+export function simulateMatch(
+  homeSheet: TeamSheet,
+  awaySheet: TeamSheet,
+  seed: number,
+  options: SimOptions = {},
+): SimResult {
+  return resumeMatch(playFirstHalf(homeSheet, awaySheet, seed, options), homeSheet, awaySheet)
+}
+
+function cloneSide(side: SideState): SideState {
+  return {
+    ...side,
+    onPitch: [...side.onPitch],
+    yellowsByPlayer: new Map(side.yellowsByPlayer),
+    stats: { ...side.stats },
+  }
+}
+
+/**
+ * Snapshot a half-time state for what-if replays: the mutable containers are
+ * copied so a replay can't corrupt the live match, and the rng (with a fresh
+ * commentator riding it) restarts from the given seed — Monte Carlo replays
+ * sample many possible second halves rather than re-telling the live one.
+ */
+export function cloneHalftimeState(state: HalftimeState, seed: number): HalftimeState {
+  const rng = createRng(seed)
+  return {
+    rng,
+    commentary: createCommentator(rng),
+    home: cloneSide(state.home),
+    away: cloneSide(state.away),
+    events: [...state.events],
+    xgTimeline: [...state.xgTimeline],
+    possessionHomeSum: state.possessionHomeSum,
+    minutesPlayed: state.minutesPlayed,
+    options: state.options,
+    seed,
   }
 }
 

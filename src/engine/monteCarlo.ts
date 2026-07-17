@@ -1,5 +1,5 @@
-import { simulateMatch } from './simulate'
-import type { MonteCarloResult, ScorelineCount, SimOptions, TeamSheet } from './types'
+import { cloneHalftimeState, resumeMatch, simulateMatch, type HalftimeState } from './simulate'
+import type { MonteCarloResult, ScorelineCount, SimOptions, SimResult, TeamSheet } from './types'
 
 /**
  * Replay the fixture n times with derived seeds. Fully reproducible for a
@@ -16,6 +16,35 @@ export function runMonteCarlo(
   baseSeed: number,
   options: SimOptions = {},
 ): MonteCarloResult {
+  return collect(runs, baseSeed, Boolean(options.knockout), (seed) => simulateMatch(home, away, seed, options))
+}
+
+/**
+ * Monte Carlo over just the second half: every run clones the frozen
+ * half-time state (same score, cards and rng-independent history so far),
+ * applies the candidate sheets and replays minutes 46+ from a derived seed.
+ * The seed derivation matches runMonteCarlo's, so two calls with the same
+ * baseSeed differ only by the sheets — the delta is the change, not
+ * sampling noise.
+ */
+export function runSecondHalfMonteCarlo(
+  state: HalftimeState,
+  home: TeamSheet,
+  away: TeamSheet,
+  runs: number,
+  baseSeed: number,
+): MonteCarloResult {
+  return collect(runs, baseSeed, Boolean(state.options.knockout), (seed) =>
+    resumeMatch(cloneHalftimeState(state, seed), home, away),
+  )
+}
+
+function collect(
+  runs: number,
+  baseSeed: number,
+  knockout: boolean,
+  simAt: (seed: number) => SimResult,
+): MonteCarloResult {
   let homeWins = 0
   let draws = 0
   let awayWins = 0
@@ -27,7 +56,7 @@ export function runMonteCarlo(
 
   for (let i = 0; i < runs; i += 1) {
     // Spread seeds so consecutive runs don't correlate.
-    const sim = simulateMatch(home, away, baseSeed + i * 7919, options)
+    const sim = simAt(baseSeed + i * 7919)
     const { finalScore } = sim
     if (sim.winner === 'home' || finalScore.home > finalScore.away) homeWins += 1
     else if (sim.winner === 'away' || finalScore.home < finalScore.away) awayWins += 1
@@ -51,7 +80,7 @@ export function runMonteCarlo(
     homeWinPct: pct(homeWins),
     drawPct: pct(draws),
     awayWinPct: pct(awayWins),
-    ...(options.knockout ? { extraTimePct: pct(extraTimes), shootoutPct: pct(shootouts) } : {}),
+    ...(knockout ? { extraTimePct: pct(extraTimes), shootoutPct: pct(shootouts) } : {}),
     topScorelines: [...scorelines.values()].sort((a, b) => b.count - a.count),
     avgGoals: {
       home: Math.round((homeGoals / runs) * 100) / 100,

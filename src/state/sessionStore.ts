@@ -1,3 +1,4 @@
+import type { MonteCarloResult, SimResult } from '../engine/types'
 import type { LineupState, SideKey } from './appState'
 
 /**
@@ -10,6 +11,12 @@ import type { LineupState, SideKey } from './appState'
 export interface StoredSim {
   seed: number
   lineups: Record<SideKey, LineupState>
+  /**
+   * Present when the match diverged from seed+lineups (the user changed
+   * something at half-time): the exact result to restore instead of
+   * re-deriving. Lives only in module memory, like everything here.
+   */
+  halftime?: { sim: SimResult; monteCarlo: MonteCarloResult }
 }
 
 const sims = new Map<string, StoredSim>()

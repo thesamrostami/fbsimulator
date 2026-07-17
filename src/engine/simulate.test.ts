@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { buildRealSheet, MATCHES, type PlayedMatch } from '../data/matches'
-import { simulateMatch } from './simulate'
+import { runSecondHalfMonteCarlo } from './monteCarlo'
+import {
+  cloneHalftimeState,
+  HALFTIME_MINUTE,
+  playFirstHalf,
+  resumeMatch,
+  sentOffIds,
+  simulateMatch,
+} from './simulate'
+import type { SimResult, TeamSheet } from './types'
 
 const mexEng = MATCHES['r16-4'] as PlayedMatch
 const home = buildRealSheet(mexEng.home)
@@ -101,5 +110,99 @@ describe('simulateMatch', () => {
       starvedGoals += simulateMatch(home, away, seed, { homePossession: 0.1 }).finalScore.home
     }
     expect(dominantGoals).toBeGreaterThan(starvedGoals)
+  })
+})
+
+describe('playFirstHalf + resumeMatch', () => {
+  const options = { knockout: true, homePossession: mexEng.real.possession.home / 100 }
+
+  /** England's second-half XI with the front three benched for the bench outfielders. */
+  function weakenedAway(): TeamSheet {
+    const replacements = away.bench.filter((p) => p.ratings.position !== 'GK')
+    expect(replacements.length).toBeGreaterThanOrEqual(3)
+    let next = 0
+    return {
+      ...away,
+      starters: away.starters.map((a) =>
+        a.slot.line === 'FWD' ? { slot: a.slot, player: replacements[next++] } : a,
+      ),
+    }
+  }
+
+  it('is byte-identical to simulateMatch when nothing changes at the break', () => {
+    let firstHalfReds = 0
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const direct = simulateMatch(home, away, seed, options)
+      const paused = playFirstHalf(home, away, seed, options)
+      if (sentOffIds(paused).size > 0) firstHalfReds += 1
+      const resumed = resumeMatch(paused, home, away)
+      expect(resumed.finalScore, `seed ${seed}`).toEqual(direct.finalScore)
+      expect(resumed.events, `seed ${seed}`).toEqual(direct.events)
+      expect(resumed.xgTimeline, `seed ${seed}`).toEqual(direct.xgTimeline)
+      expect(resumed, `seed ${seed}`).toEqual(direct)
+    }
+    // The tricky path — re-anchoring a side already down to ten — must be hit.
+    expect(firstHalfReds).toBeGreaterThan(0)
+  })
+
+  it('is byte-identical without options too', () => {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      expect(resumeMatch(playFirstHalf(home, away, seed), home, away)).toEqual(
+        simulateMatch(home, away, seed),
+      )
+    }
+  })
+
+  it('freezes exactly at the whistle', () => {
+    const paused = playFirstHalf(home, away, 3, options)
+    expect(paused.minutesPlayed).toBe(HALFTIME_MINUTE)
+    expect(paused.xgTimeline).toHaveLength(HALFTIME_MINUTE)
+    for (const event of paused.events) expect(event.minute).toBeLessThanOrEqual(HALFTIME_MINUTE)
+  })
+
+  it('refuses to resume the same consumed state twice', () => {
+    const paused = playFirstHalf(home, away, 5, options)
+    resumeMatch(paused, home, away)
+    expect(() => resumeMatch(paused, home, away)).toThrow()
+  })
+
+  it('a half-time change alters only the second half', () => {
+    const weakAway = weakenedAway()
+    const firstHalfOf = (r: SimResult) => r.events.filter((e) => e.minute <= HALFTIME_MINUTE)
+    let secondHalvesDiffer = 0
+    for (let seed = 1; seed <= 10; seed += 1) {
+      const direct = simulateMatch(home, away, seed, options)
+      const changed = resumeMatch(playFirstHalf(home, away, seed, options), home, weakAway)
+      expect(firstHalfOf(changed)).toEqual(firstHalfOf(direct))
+      expect(changed.xgTimeline.slice(0, HALFTIME_MINUTE)).toEqual(
+        direct.xgTimeline.slice(0, HALFTIME_MINUTE),
+      )
+      if (JSON.stringify(changed.events) !== JSON.stringify(direct.events)) secondHalvesDiffer += 1
+    }
+    expect(secondHalvesDiffer).toBeGreaterThan(0)
+  })
+
+  it('cloned replays are deterministic and leave the frozen state untouched', () => {
+    const paused = playFirstHalf(home, away, 9, options)
+    const eventCount = paused.events.length
+    const a = resumeMatch(cloneHalftimeState(paused, 123), home, away)
+    const b = resumeMatch(cloneHalftimeState(paused, 123), home, away)
+    expect(b).toEqual(a)
+    // The live match is untouched: still frozen at 45', still resumable.
+    expect(paused.events).toHaveLength(eventCount)
+    expect(paused.minutesPlayed).toBe(HALFTIME_MINUTE)
+    expect(paused.home.stats.possession).toBe(0)
+    expect(() => resumeMatch(paused, home, away)).not.toThrow()
+  })
+
+  it('runSecondHalfMonteCarlo: benching the attack at the break lowers that win share', () => {
+    const paused = playFirstHalf(home, away, 77, options)
+    const unchanged = runSecondHalfMonteCarlo(paused, paused.home.sheet, paused.away.sheet, 300, 4242)
+    const weakened = runSecondHalfMonteCarlo(paused, paused.home.sheet, weakenedAway(), 300, 4242)
+    expect(weakened.awayWinPct).toBeLessThan(unchanged.awayWinPct)
+    // Reproducible: the same baseSeed replays the same second halves.
+    expect(runSecondHalfMonteCarlo(paused, paused.home.sheet, paused.away.sheet, 300, 4242)).toEqual(
+      unchanged,
+    )
   })
 })

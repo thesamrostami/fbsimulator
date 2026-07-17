@@ -82,6 +82,49 @@ function phases(strength: TeamStrength): Record<PhaseKey, number> {
 
 const round = (value: number): number => Math.round(value)
 
+function shiftsBetween(
+  teams: Record<SideKey, TeamInfo>,
+  before: Record<SideKey, Record<PhaseKey, number>>,
+  after: Record<SideKey, Record<PhaseKey, number>>,
+): PhaseShift[] {
+  const shifts: PhaseShift[] = []
+  for (const key of ['home', 'away'] as const) {
+    for (const phase of Object.keys(PHASE_LABEL) as PhaseKey[]) {
+      if (round(before[key][phase]) !== round(after[key][phase])) {
+        shifts.push({
+          team: teams[key],
+          phase,
+          label: PHASE_LABEL[phase],
+          before: round(before[key][phase]),
+          after: round(after[key][phase]),
+        })
+      }
+    }
+  }
+  return shifts
+}
+
+/**
+ * before → after phase changes between two editable lineup snapshots — the
+ * half-time editor's "why the odds moved", measured against the XIs that
+ * finished the first half rather than the real starting XIs.
+ */
+export function buildHalftimeShifts(
+  match: PlayedMatch,
+  before: Record<SideKey, LineupState>,
+  after: Record<SideKey, LineupState>,
+): PhaseShift[] {
+  const strengthsOf = (lineups: Record<SideKey, LineupState>) => ({
+    home: phases(computeSheetStrength(buildSheet(match.home, lineups.home))),
+    away: phases(computeSheetStrength(buildSheet(match.away, lineups.away))),
+  })
+  return shiftsBetween(
+    { home: TEAMS[match.home.teamId], away: TEAMS[match.away.teamId] },
+    strengthsOf(before),
+    strengthsOf(after),
+  )
+}
+
 export function buildWhyThisResult(
   match: PlayedMatch,
   lineups: Record<SideKey, LineupState>,
@@ -123,25 +166,11 @@ export function buildWhyThisResult(
     ] as SideExplanation[]
   ).filter((side) => side.flags.length > 0)
 
-  const shifts: PhaseShift[] = []
-  for (const [key, team] of [
-    ['home', home],
-    ['away', away],
-  ] as const) {
-    const before = phases(real[key])
-    const after = usedPhases[key]
-    for (const phase of Object.keys(PHASE_LABEL) as PhaseKey[]) {
-      if (round(before[phase]) !== round(after[phase])) {
-        shifts.push({
-          team,
-          phase,
-          label: PHASE_LABEL[phase],
-          before: round(before[phase]),
-          after: round(after[phase]),
-        })
-      }
-    }
-  }
+  const shifts = shiftsBetween(
+    { home, away },
+    { home: phases(real.home), away: phases(real.away) },
+    usedPhases,
+  )
 
   const formationChanges: FormationChange[] = (
     [

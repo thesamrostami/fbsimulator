@@ -1,6 +1,6 @@
 import { buildRealSheet, type PlayedMatch } from '../data/matches'
-import { runMonteCarlo } from '../engine/monteCarlo'
-import { simulateMatch } from '../engine/simulate'
+import { runMonteCarlo, runSecondHalfMonteCarlo } from '../engine/monteCarlo'
+import { playFirstHalf, resumeMatch, simulateMatch, type HalftimeState } from '../engine/simulate'
 import type { MonteCarloResult, SimOptions, SimResult, TeamSheet } from '../engine/types'
 
 export interface SimulationOutcome {
@@ -68,4 +68,76 @@ export async function runSimulation(
   const sim = simulateMatch(home, away, seed, options)
   const monteCarlo = runMonteCarlo(home, away, MONTE_CARLO_RUNS, INSIGHT_SEED, options)
   return { sim, monteCarlo }
+}
+
+export interface KickoffOutcome {
+  /** The live match, frozen at 45'. Feed to resumeSecondHalf exactly once. */
+  firstHalf: HalftimeState
+  monteCarlo: MonteCarloResult
+}
+
+/**
+ * Kick off an interactive match: play minutes 1–45 and freeze at the break,
+ * alongside the same insight Monte Carlo runSimulation produces. The second
+ * half is played by resumeSecondHalf once the user has made (or declined)
+ * half-time changes.
+ */
+export async function runFirstHalf(
+  home: TeamSheet,
+  away: TeamSheet,
+  options: SimOptions = {},
+  seed: number = randomSeed(),
+): Promise<KickoffOutcome> {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  return {
+    firstHalf: playFirstHalf(home, away, seed, options),
+    monteCarlo: runMonteCarlo(home, away, MONTE_CARLO_RUNS, INSIGHT_SEED, options),
+  }
+}
+
+/** Async boundary around resumeMatch — same contract as runSimulation's. */
+export async function resumeSecondHalf(
+  firstHalf: HalftimeState,
+  home: TeamSheet,
+  away: TeamSheet,
+): Promise<SimResult> {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  return resumeMatch(firstHalf, home, away)
+}
+
+export interface HalftimeInsightRuns {
+  /** The frozen match played out with the XIs that finished the first half. */
+  unchanged: MonteCarloResult
+  /** The same seeded second halves with the user's candidate sheets. */
+  edited: MonteCarloResult
+}
+
+/** The unchanged-XI run never varies for a given pause — computed once per match. */
+const halftimeBaselines = new WeakMap<HalftimeState, MonteCarloResult>()
+
+/**
+ * The half-time counterpart of the insight Monte Carlo: replay only the
+ * second half from the frozen state, once as-is and once with the edited
+ * sheets, from the same INSIGHT_SEED sequence — so the win% delta reflects
+ * the half-time change alone, not sampling noise.
+ */
+export async function runHalftimeInsight(
+  firstHalf: HalftimeState,
+  editedHome: TeamSheet,
+  editedAway: TeamSheet,
+): Promise<HalftimeInsightRuns> {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  let unchanged = halftimeBaselines.get(firstHalf)
+  if (!unchanged) {
+    unchanged = runSecondHalfMonteCarlo(
+      firstHalf,
+      firstHalf.home.sheet,
+      firstHalf.away.sheet,
+      MONTE_CARLO_RUNS,
+      INSIGHT_SEED,
+    )
+    halftimeBaselines.set(firstHalf, unchanged)
+  }
+  const edited = runSecondHalfMonteCarlo(firstHalf, editedHome, editedAway, MONTE_CARLO_RUNS, INSIGHT_SEED)
+  return { unchanged, edited }
 }

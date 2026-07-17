@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useCallback, useEffect, useReducer, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { LineupEditor } from '../components/screens/LineupEditor'
 import { MatchSim } from '../components/screens/MatchSim'
@@ -8,8 +8,9 @@ import { TeamFlag } from '../components/ui/TeamFlag'
 import { FOCUS_RING } from '../ui/theme'
 import { getMatch, type PlayedMatch } from '../data/matches'
 import { TEAMS } from '../data/teams'
-import { matchSimOptions, runSimulation } from '../services/simulation'
-import { buildSheet, initialMatchState, matchAppReducer } from '../state/appState'
+import type { SimResult } from '../engine/types'
+import { matchSimOptions, resumeSecondHalf, runFirstHalf, runSimulation } from '../services/simulation'
+import { buildSheet, initialMatchState, matchAppReducer, type LineupState, type SideKey } from '../state/appState'
 import { sessionSims } from '../state/sessionStore'
 
 function ScreenShell({ children }: { children: ReactNode }) {
@@ -35,6 +36,10 @@ function realScoreLabel(match: PlayedMatch): string {
 function MatchFlow({ match }: { match: PlayedMatch }) {
   const [state, dispatch] = useReducer(matchAppReducer, match, initialMatchState)
   const [simulating, setSimulating] = useState(false)
+  const [resuming, setResuming] = useState(false)
+  // resumeMatch consumes the frozen state — a second call on the same handle
+  // must never start, even before React has re-rendered with the result.
+  const resumeGuard = useRef(false)
   const home = TEAMS[match.home.teamId]
   const away = TEAMS[match.away.teamId]
 
@@ -44,20 +49,69 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
     try {
       const homeSheet = buildSheet(match.home, state.lineups.home)
       const awaySheet = buildSheet(match.away, state.lineups.away)
-      const { sim, monteCarlo } = await runSimulation(homeSheet, awaySheet, matchSimOptions(match))
-      // Seed + lineups fully determine the sim: enough to re-derive the
-      // match report if the user navigates away and back this session.
-      sessionSims.set(match.id, { seed: sim.seed, lineups: state.lineups })
-      dispatch({ type: 'results', sim, monteCarlo })
+      const { firstHalf, monteCarlo } = await runFirstHalf(homeSheet, awaySheet, matchSimOptions(match))
+      // Seed + lineups re-derive an unchanged match for the session store; a
+      // half-time edit overwrites this entry with the exact result later.
+      sessionSims.set(match.id, { seed: firstHalf.seed, lineups: state.lineups })
+      dispatch({ type: 'first-half', firstHalf, monteCarlo })
     } finally {
       setSimulating(false)
     }
   }, [simulating, state.lineups, match])
 
+  /** Play the second half from the paused state, with or without changes. */
+  const resume = useCallback(
+    async (halftimeLineups: Record<SideKey, LineupState>, edited: boolean): Promise<SimResult | null> => {
+      if (!state.firstHalf || state.sim || resumeGuard.current) return null
+      resumeGuard.current = true
+      setResuming(true)
+      try {
+        // Unchanged: reuse the very sheets the first half was played with.
+        const homeSheet = edited ? buildSheet(match.home, halftimeLineups.home) : state.firstHalf.home.sheet
+        const awaySheet = edited ? buildSheet(match.away, halftimeLineups.away) : state.firstHalf.away.sheet
+        const sim = await resumeSecondHalf(state.firstHalf, homeSheet, awaySheet)
+        if (edited && state.monteCarlo) {
+          // Seed + kickoff lineups no longer reproduce this match — keep the result itself.
+          sessionSims.set(match.id, {
+            seed: sim.seed,
+            lineups: state.lineups,
+            halftime: { sim, monteCarlo: state.monteCarlo },
+          })
+        }
+        dispatch({ type: 'second-half', sim })
+        return sim
+      } finally {
+        resumeGuard.current = false
+        setResuming(false)
+      }
+    },
+    [state.firstHalf, state.sim, state.monteCarlo, state.lineups, match],
+  )
+
+  /** To the result screen — playing out an untouched second half first if needed. */
+  const finish = useCallback(async () => {
+    if (!state.sim) {
+      const sim = await resume(state.lineups, false)
+      if (!sim) return
+    }
+    dispatch({ type: 'screen', screen: 'result' })
+  }, [state.sim, state.lineups, resume])
+
   // Restore the last simulation of this match from the session store.
   useEffect(() => {
     const stored = sessionSims.get(match.id)
     if (!stored || state.sim) return
+    // A half-time-edited match can't be re-derived from seed+lineups: restore
+    // the stored result directly (module memory, so the objects are intact).
+    if (stored.halftime) {
+      dispatch({
+        type: 'restore',
+        sim: stored.halftime.sim,
+        monteCarlo: stored.halftime.monteCarlo,
+        lineups: stored.lineups,
+      })
+      return
+    }
     let cancelled = false
     ;(async () => {
       const homeSheet = buildSheet(match.home, stored.lineups.home)
@@ -101,20 +155,25 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
           <ScreenShell key="editor">
             <LineupEditor
               match={match}
-              state={state}
+              lineups={state.lineups}
               dispatch={dispatch}
               onKickOff={kickOff}
               simulating={simulating}
             />
           </ScreenShell>
         )}
-        {state.screen === 'match' && state.sim && (
+        {state.screen === 'match' && state.firstHalf && (
           <ScreenShell key="match">
             <MatchSim
+              match={match}
+              firstHalf={state.firstHalf}
               sim={state.sim}
+              lineups={state.lineups}
               home={home}
               away={away}
-              onDone={() => dispatch({ type: 'screen', screen: 'result' })}
+              resuming={resuming}
+              onResume={resume}
+              onDone={finish}
             />
           </ScreenShell>
         )}

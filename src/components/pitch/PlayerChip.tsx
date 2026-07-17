@@ -8,6 +8,8 @@ interface PlayerChipProps {
   accent: string
   selected: boolean
   flag?: OutOfPositionFlag
+  /** Not currently swappable (e.g. the half-time substitution cap is reached). */
+  disabled?: boolean
   onClick: () => void
 }
 
@@ -15,25 +17,30 @@ interface PlayerChipProps {
  * One tappable player. Keyed by player id with a shared layoutId so a swap
  * (pitch<->pitch or pitch<->bench) springs the chip to its new home.
  */
-export function PlayerChip({ player, roleLabel, accent, selected, flag, onClick }: PlayerChipProps) {
+export function PlayerChip({ player, roleLabel, accent, selected, flag, disabled, onClick }: PlayerChipProps) {
   return (
     <motion.button
       layoutId={player.id}
       layout
       transition={SPRING}
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={selected}
       title={
-        flag
-          ? `${player.name} is a ${flag.naturalLine} playing ${flag.slotLabel} — ratings scaled to ${Math.round(flag.penalty * 100)}%`
-          : `${player.name} (${player.ratings.position})`
+        disabled
+          ? `${player.name} — no substitutions left`
+          : flag
+            ? `${player.name} is a ${flag.naturalLine} playing ${flag.slotLabel} — ratings scaled to ${Math.round(flag.penalty * 100)}%`
+            : `${player.name} (${player.ratings.position})`
       }
-      whileHover={{ scale: 1.07 }}
-      whileTap={{ scale: 0.94 }}
+      whileHover={disabled ? undefined : { scale: 1.07 }}
+      whileTap={disabled ? undefined : { scale: 0.94 }}
       className={`relative flex w-16 flex-col items-center rounded-xl border px-1 pb-1 pt-1.5 shadow-lg shadow-black/50 backdrop-blur-sm transition-colors ${FOCUS_RING} ${
         selected
           ? 'border-floodlight bg-floodlight/15'
-          : 'border-white/10 bg-night-2/90 hover:border-white/30'
+          : disabled
+            ? 'cursor-not-allowed border-white/5 bg-night-2/60 opacity-40'
+            : 'border-white/10 bg-night-2/90 hover:border-white/30'
       }`}
       style={selected ? { boxShadow: `0 0 0 2px ${accent}, 0 0 18px ${accent}66` } : undefined}
     >

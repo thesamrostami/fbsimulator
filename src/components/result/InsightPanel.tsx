@@ -37,7 +37,8 @@ function deltaLabel(delta: number): string {
   return `${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)} pts`
 }
 
-function CompareRow({ label, pct, color, faded, delay, runs, delta, deltaIsNeutral }: CompareRowProps) {
+/** Shared with the half-time insight strip — same visual row, different moment. */
+export function CompareRow({ label, pct, color, faded, delay, runs, delta, deltaIsNeutral }: CompareRowProps) {
   const deltaClass =
     delta === undefined || Math.abs(delta) < 0.05 || deltaIsNeutral
       ? 'text-muted'

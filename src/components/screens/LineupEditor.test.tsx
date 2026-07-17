@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useReducer } from 'react'
+import { useMemo, useReducer } from 'react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { MATCHES, type PlayedMatch } from '../../data/matches'
-import { initialMatchState, matchAppReducer } from '../../state/appState'
+import { initialMatchState, makeHalftimeReducer, matchAppReducer } from '../../state/appState'
 import { LineupEditor } from './LineupEditor'
 
 // jsdom lacks the browser APIs framer-motion probes for.
@@ -25,7 +25,30 @@ const match = MATCHES['r16-4'] as PlayedMatch
 function Harness() {
   const [state, dispatch] = useReducer(matchAppReducer, match, initialMatchState)
   return (
-    <LineupEditor match={match} state={state} dispatch={dispatch} onKickOff={() => {}} simulating={false} />
+    <LineupEditor match={match} lineups={state.lineups} dispatch={dispatch} onKickOff={() => {}} simulating={false} />
+  )
+}
+
+const firstHalfLineups = initialMatchState(match).lineups
+
+function HalftimeHarness({ dismissed = [] }: { dismissed?: string[] }) {
+  const reducer = useMemo(() => makeHalftimeReducer(firstHalfLineups), [])
+  const [lineups, dispatch] = useReducer(reducer, firstHalfLineups)
+  const dismissedSet = useMemo(() => new Set(dismissed), [dismissed])
+  return (
+    <LineupEditor
+      match={match}
+      lineups={lineups}
+      dispatch={dispatch}
+      onKickOff={() => {}}
+      simulating={false}
+      mode="halftime"
+      firstHalfStarters={{
+        home: firstHalfLineups.home.startersBySlot,
+        away: firstHalfLineups.away.startersBySlot,
+      }}
+      dismissed={dismissedSet}
+    />
   )
 }
 
@@ -71,5 +94,44 @@ describe('LineupEditor bench swaps (regression: stale pitch render)', () => {
       within(pitch.getByText(name).closest('button')!).getByText(/^(ST|LW|RW|CM|RB|LB|CB|GK)$/).textContent
     expect(chipRole('Jimenez')).toBe('LW')
     expect(chipRole('Quinones')).toBe('ST')
+  })
+
+  it('shows no substitution counter in pre-match mode', () => {
+    render(<Harness />)
+    expect(screen.queryByTestId('subs-counter')).toBeNull()
+  })
+})
+
+describe('LineupEditor half-time mode', () => {
+  it('never renders a sent-off player as selectable — not on the pitch, not on the bench', () => {
+    render(<HalftimeHarness dismissed={['mex-jimenez']} />)
+
+    // The slot shows a non-interactive "sent off" hole, never a tappable chip.
+    for (const el of screen.getAllByText('Jimenez')) {
+      expect(el.closest('button')).toBeNull()
+    }
+    expect(screen.getByText('Sent off')).toBeDefined()
+    expect(within(screen.getByTestId('bench')).queryByText('Jimenez')).toBeNull()
+
+    // Everyone else is still a normal chip.
+    expect(within(screen.getByTestId('pitch')).getByText('Quinones').closest('button')).not.toBeNull()
+  })
+
+  it('counts personnel changes live in the subs counter', async () => {
+    const user = userEvent.setup()
+    render(<HalftimeHarness />)
+
+    expect(screen.getByTestId('subs-counter').textContent).toBe('0 / 5')
+
+    const bench = within(screen.getByTestId('bench'))
+    const pitch = within(screen.getByTestId('pitch'))
+    await user.click(bench.getByText('Vargas'))
+    await user.click(pitch.getByText('Jimenez'))
+
+    expect(screen.getByTestId('subs-counter').textContent).toBe('1 / 5')
+
+    // Formation-only change: still one personnel change.
+    await user.click(screen.getByRole('radio', { name: /4-4-2/ }))
+    expect(screen.getByTestId('subs-counter').textContent).toBe('1 / 5')
   })
 })
