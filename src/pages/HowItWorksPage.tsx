@@ -37,7 +37,7 @@ function Formula({ children }: { children: ReactNode }) {
 export function HowItWorksPage() {
   return (
     <main className="min-h-screen px-4 pb-16">
-      <header className="mx-auto flex max-w-3xl items-center justify-between pb-8 pt-8">
+      <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 pb-8 pt-8">
         <div>
           <motion.h1
             initial={{ opacity: 0, y: -12 }}
@@ -48,7 +48,7 @@ export function HowItWorksPage() {
           </motion.h1>
           <p className="mt-1 text-sm text-muted">No black box: what's real, what's estimated, and the actual math.</p>
         </div>
-        <Link to="/bracket" className={`px-4 py-2 ${BTN_SECONDARY}`}>
+        <Link to="/bracket" className={`shrink-0 whitespace-nowrap px-4 py-2 ${BTN_SECONDARY}`}>
           ◂ Bracket
         </Link>
       </header>

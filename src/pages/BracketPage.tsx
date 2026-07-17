@@ -189,31 +189,31 @@ export function BracketPage() {
   // Column indices in the 7-column grid: cards at 1,3,5,7; connectors at 2,4,6.
   const rounds = BRACKET_ROUNDS
 
-  // Mouse drag-to-pan for the two-way scroll area (touch pans natively).
+  // Mouse drag-to-pan for the horizontal scroll area (touch pans natively;
+  // vertical scrolling belongs to the page).
   const scroller = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
+  const drag = useRef<{ x: number; left: number } | null>(null)
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = scroller.current
     if (!el || e.pointerType !== 'mouse' || e.button !== 0) return
     // Dragging from a card would swallow its click; pan from the empty space.
     if ((e.target as HTMLElement).closest('button, a')) return
-    drag.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop }
+    drag.current = { x: e.clientX, left: el.scrollLeft }
     el.setPointerCapture(e.pointerId)
   }
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = scroller.current
     if (!el || !drag.current) return
     el.scrollLeft = drag.current.left - (e.clientX - drag.current.x)
-    el.scrollTop = drag.current.top - (e.clientY - drag.current.y)
   }
   const endDrag = () => {
     drag.current = null
   }
 
   return (
-    <main className="min-h-screen px-4 pb-16">
+    <main className="min-h-screen px-4 pb-6">
       <header className="mx-auto flex max-w-6xl flex-col gap-3 pb-6 pt-8 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -249,19 +249,20 @@ export function BracketPage() {
         </div>
       </header>
 
-      {/* One scroll area both ways: headers stick to its top and stay column-aligned while it pans. */}
+      {/* Horizontal scroll area: the page handles vertical scrolling, so the
+          footer notes sit naturally below the whole bracket. */}
       <div
         ref={scroller}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="scroll-area max-h-[calc(100vh-11rem)] cursor-grab overflow-auto pb-4 active:cursor-grabbing"
+        className="scroll-area cursor-grab overflow-x-auto pb-4 active:cursor-grabbing"
       >
-        <div className="mx-auto min-w-[66rem] max-w-6xl px-2 pb-8 sm:px-4">
-          {/* Column headers: pinned while the tall bracket scrolls vertically. */}
+        <div className="mx-auto min-w-[66rem] max-w-6xl px-2 pb-4 sm:px-4">
+          {/* Column headers, aligned with the columns below. */}
           <div
-            className="sticky top-0 z-10 grid gap-x-0 bg-night/85 py-2.5 backdrop-blur-sm"
+            className="grid gap-x-0 py-2.5"
             style={{ gridTemplateColumns: 'minmax(0,1fr) 3.25rem minmax(0,1fr) 3.25rem minmax(0,1fr) 3.25rem minmax(0,1fr)' }}
           >
             {rounds.map((round, r) => (

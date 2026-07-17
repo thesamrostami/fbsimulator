@@ -127,14 +127,20 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
     if (visibleGoals.length > celebratedCount.current) {
       celebratedCount.current = visibleGoals.length
       setCelebration(visibleGoals[visibleGoals.length - 1])
-      const timer = setTimeout(() => setCelebration(null), 2100)
-      return () => clearTimeout(timer)
-    }
-    if (visibleGoals.length < celebratedCount.current) {
+    } else if (visibleGoals.length < celebratedCount.current) {
       // Scrubbed backwards: allow re-celebration from here.
       celebratedCount.current = visibleGoals.length
     }
   }, [visibleGoals])
+
+  // Dismissal lives in its own effect keyed on the celebration: visibleGoals
+  // gets a fresh identity every playhead frame, so a timer owned by the effect
+  // above is cleared on the very next frame and never fires.
+  useEffect(() => {
+    if (!celebration) return
+    const timer = setTimeout(() => setCelebration(null), 2100)
+    return () => clearTimeout(timer)
+  }, [celebration])
 
   const shotsFor = (side: 'home' | 'away') =>
     visibleEvents.filter(
@@ -217,15 +223,15 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
         </div>
 
         {/* Live counters */}
-        <div className="mt-3 flex justify-center gap-8 text-[11px] font-bold uppercase tracking-widest text-muted">
-          <span>
+        <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-1 text-[11px] font-bold uppercase tracking-widest text-muted sm:gap-x-8">
+          <span className="whitespace-nowrap">
             Shots <span className="text-floodlight tabular-nums">{shotsFor('home')}–{shotsFor('away')}</span>
           </span>
-          <span>
+          <span className="whitespace-nowrap">
             xG <span className="text-floodlight tabular-nums">{xgNow.home.toFixed(2)}–{xgNow.away.toFixed(2)}</span>
           </span>
           {latestRed && (
-            <span className="text-card-red">
+            <span className="whitespace-nowrap text-card-red">
               🟥 {latestRed.player?.name} ({latestRed.teamId})
             </span>
           )}
