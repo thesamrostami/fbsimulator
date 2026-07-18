@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { PlayedMatch } from '../../data/matches'
 import type { TeamInfo } from '../../data/teams'
 import { HALFTIME_MINUTE, type HalftimeState } from '../../engine/simulate'
-import type { MatchEvent, SimResult } from '../../engine/types'
+import type { MatchEvent, MomentumTimelinePoint, SimResult } from '../../engine/types'
 import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
 import { GoalCelebration } from '../match/GoalCelebration'
@@ -12,6 +13,11 @@ import { PenaltyShootout } from '../match/PenaltyShootout'
 import { XgRaceChart } from '../match/XgRaceChart'
 import { TeamFlag } from '../ui/TeamFlag'
 import { FOCUS_RING } from '../../ui/theme'
+
+// three.js is heavy; keep it out of the main chunk so the 2D views stay light.
+const MomentumTerrain = lazy(() =>
+  import('../match/MomentumTerrain').then((m) => ({ default: m.MomentumTerrain })),
+)
 
 interface MatchSimProps {
   match: PlayedMatch
@@ -28,8 +34,8 @@ interface MatchSimProps {
   onDone: () => void
 }
 
-/** Playback pace: match minutes per real second at 1x. 90' in 18s. */
-const MINUTES_PER_SECOND = 5
+/** Playback pace: match minutes per real second at 1x. 90' in 30s. */
+const MINUTES_PER_SECOND = 3
 const SPEEDS = [1, 2, 4] as const
 
 function AnimatedDigit({ value, color }: { value: number; color: string }) {
@@ -52,6 +58,66 @@ function AnimatedDigit({ value, color }: { value: number; color: string }) {
   )
 }
 
+/** The floating holographic pitch-terrain stage — active by default. */
+function TerrainStage({
+  momentumTimeline,
+  events,
+  minute,
+  duration,
+  home,
+  away,
+  reducedMotion,
+}: {
+  momentumTimeline: MomentumTimelinePoint[]
+  events: MatchEvent[]
+  minute: number
+  duration: number
+  home: TeamInfo
+  away: TeamInfo
+  reducedMotion: boolean
+}) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl"
+      style={{
+        background:
+          'radial-gradient(120% 100% at 50% 0%, rgba(90,169,255,0.08), rgba(47,191,113,0.05) 45%, rgba(6,17,11,0) 72%)',
+      }}
+    >
+      <div className="flex items-center gap-2 px-5 pt-4">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted">Attacking terrain</span>
+        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-floodlight/70">
+          3D
+        </span>
+      </div>
+      <div className="h-[26rem] w-full sm:h-[32rem]">
+        <Suspense fallback={<div className="grid h-full place-items-center text-xs text-muted">Loading pitch…</div>}>
+          <MomentumTerrain
+            momentumTimeline={momentumTimeline}
+            events={events}
+            minute={minute}
+            homeColor={home.color}
+            awayColor={away.color}
+            homeName={home.shortName}
+            awayName={away.shortName}
+            duration={duration}
+            reducedMotion={reducedMotion}
+          />
+        </Suspense>
+      </div>
+      <p className="px-5 pb-4 text-[11px] leading-snug text-muted">
+        Drag to orbit, scroll to zoom. Two colored sheets share the pitch; the line where they meet is the
+        territory the teams push back and forth, sharp peaks pop where shots happen, and a goal floods the spot.
+        Teams switch ends at half-time. Shot spots are a deterministic impression, not recorded positions —{' '}
+        <Link to="/how-it-works" className="underline underline-offset-2 hover:text-floodlight">
+          how it works
+        </Link>
+        .
+      </p>
+    </div>
+  )
+}
+
 export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming, onResume, onDone }: MatchSimProps) {
   const duration = sim?.wentToExtraTime ? 120 : 90
   const [minute, setMinute] = useState(0)
@@ -61,12 +127,29 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
   const [atBreak, setAtBreak] = useState(false)
   const celebratedCount = useRef(0)
 
+  // Prefer-reduced-motion: the 3D scene's flood/pulse are frozen (not the 2D
+  // default), so the feature stays reachable without violating the preference.
+  const [reducedMotion, setReducedMotion] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    if (!mq) return
+    const onChange = () => setReducedMotion(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   // The engine grows the first half's arrays in place at resume, so sim.events
   // IS firstHalf.events. Copy once when the second half lands to give memos
   // (and the xG chart's y-scale) a fresh identity — the copy keeps every
   // element and its order, so the feed appends from 46' instead of resetting.
   const events = useMemo(() => (sim ? [...sim.events] : firstHalf.events), [sim, firstHalf])
   const xgTimeline = useMemo(() => (sim ? [...sim.xgTimeline] : firstHalf.xgTimeline), [sim, firstHalf])
+  const momentumTimeline = useMemo(
+    () => (sim ? [...sim.momentumTimeline] : firstHalf.momentumTimeline),
+    [sim, firstHalf],
+  )
 
   const finished = sim !== null && minute >= duration
   const showShootout = finished && sim?.shootout !== undefined
@@ -251,36 +334,46 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
           onResume={onResume}
         />
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
-            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">
-              The xG race
-            </h2>
-            <XgRaceChart
-              timeline={xgTimeline}
-              minute={minute}
-              goals={goals}
-              homeName={home.shortName}
-              awayName={away.shortName}
-              homeColor={home.chartColor}
-              awayColor={away.chartColor}
-              maxMinute={duration}
-            />
-          </div>
+        <div className="grid gap-5">
+          {/* The floating 3D pitch-terrain — its own holographic stage, active
+              by default and lazy-loaded so three.js stays out of the main chunk. */}
+          <TerrainStage
+            momentumTimeline={momentumTimeline}
+            events={events}
+            minute={minute}
+            duration={duration}
+            home={home}
+            away={away}
+            reducedMotion={reducedMotion}
+          />
 
-          <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
-            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">
-              Live commentary
-            </h2>
-            <div className="scroll-area flex h-[19rem] flex-col gap-2 overflow-y-auto pr-1">
-              <AnimatePresence initial={false}>
-                {/* visibleEvents is a growing prefix of the events array, so the index is a stable key. */}
-                {visibleEvents
-                  .map((event, index) => (
-                    <EventCard key={index} event={event} homeShort={home.shortName} awayShort={away.shortName} />
-                  ))
-                  .reverse()}
-              </AnimatePresence>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
+              <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">The xG race</h2>
+              <XgRaceChart
+                timeline={xgTimeline}
+                minute={minute}
+                goals={goals}
+                homeName={home.shortName}
+                awayName={away.shortName}
+                homeColor={home.chartColor}
+                awayColor={away.chartColor}
+                maxMinute={duration}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
+              <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">Live commentary</h2>
+              <div className="scroll-area flex h-[19rem] flex-col gap-2 overflow-y-auto pr-1">
+                <AnimatePresence initial={false}>
+                  {/* visibleEvents is a growing prefix of the events array, so the index is a stable key. */}
+                  {visibleEvents
+                    .map((event, index) => (
+                      <EventCard key={index} event={event} homeShort={home.shortName} awayShort={away.shortName} />
+                    ))
+                    .reverse()}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>

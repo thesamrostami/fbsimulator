@@ -10,6 +10,10 @@ vi.mock('framer-motion', async (importOriginal) => {
   const mod = await importOriginal<typeof import('framer-motion')>()
   return { ...mod, AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</> }
 })
+// The 3D pitch mounts a WebGL canvas jsdom can't run; stub it — this test is
+// about goal-celebration state, not the terrain.
+vi.mock('../match/MomentumTerrain', () => ({ MomentumTerrain: () => null }))
+import { MemoryRouter } from 'react-router-dom'
 import { buildRealSheet, MATCHES, type PlayedMatch } from '../../data/matches'
 import { TEAMS } from '../../data/teams'
 import { playFirstHalf, resumeMatch, type HalftimeState } from '../../engine/simulate'
@@ -75,17 +79,19 @@ describe('MatchSim goal celebration (regression: overlay never dismissed)', () =
     const lineups = initialMatchState(match).lineups
 
     render(
-      <MatchSim
-        match={match}
-        firstHalf={firstHalf}
-        sim={sim}
-        lineups={lineups}
-        home={TEAMS[match.home.teamId]}
-        away={TEAMS[match.away.teamId]}
-        resuming={false}
-        onResume={() => {}}
-        onDone={() => {}}
-      />,
+      <MemoryRouter>
+        <MatchSim
+          match={match}
+          firstHalf={firstHalf}
+          sim={sim}
+          lineups={lineups}
+          home={TEAMS[match.home.teamId]}
+          away={TEAMS[match.away.teamId]}
+          resuming={false}
+          onResume={() => {}}
+          onDone={() => {}}
+        />
+      </MemoryRouter>,
     )
 
     // Play until the LAST goal crosses the playhead, advancing one 16ms frame
@@ -95,8 +101,8 @@ describe('MatchSim goal celebration (regression: overlay never dismissed)', () =
     const goalMinutes = sim.events.filter((e) => e.type === 'goal').map((e) => e.minute)
     const lastGoalMinute = Math.max(...goalMinutes)
     let appeared = false
-    // 90 match-min at 5 min/s is 18s ≈ 1125 frames; cap generously.
-    for (let i = 0; i < 1400; i++) {
+    // 90 match-min at 3 min/s is 30s ≈ 1875 frames; cap generously.
+    for (let i = 0; i < 2600; i++) {
       act(() => vi.advanceTimersByTime(16))
       if (screen.queryByText('Goal!')) appeared = true
       if (appeared && screen.getByLabelText<HTMLInputElement>('Match minute').valueAsNumber >= lastGoalMinute) break
@@ -109,5 +115,7 @@ describe('MatchSim goal celebration (regression: overlay never dismissed)', () =
       act(() => vi.advanceTimersByTime(16))
     }
     expect(screen.queryByText('Goal!')).toBeNull()
-  })
+    // This test steps ~1600 render frames of the full match UI synchronously;
+    // give it headroom over the 5s default.
+  }, 20000)
 })

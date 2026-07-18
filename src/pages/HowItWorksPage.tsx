@@ -250,6 +250,26 @@ export function HowItWorksPage() {
           </p>
         </Section>
 
+        <Section title="The 3D territory portrait">
+          <p>
+            On the match screen a live <strong>3D pitch</strong> hangs in view, driven by the same playhead.
+            Two translucent <strong>territory sheets</strong> in the teams' colours share the field, and the{' '}
+            <strong>line where they meet is the ground each side holds</strong>. A raised wave rides that line
+            and <strong>slides with momentum</strong> — when a team presses, its colour pushes across the
+            halfway line into the opponent's territory, then the tide turns. <strong>Sharp peaks</strong> stab
+            up where shots happen (taller for a better chance), a <strong>goal floods</strong> the spot in the
+            scorer's colour, and <strong>teams switch ends at half-time</strong>. Pins mark goals and red cards.
+          </p>
+          <p>
+            <strong>One honest caveat.</strong> The engine doesn't simulate <em>where</em> on the pitch a shot
+            is taken, so the peaks don't pretend to. Each one's spot is a{' '}
+            <strong>deterministic pseudo-position</strong> — hashed from the event's minute and player and
+            biased toward that side's attacking third. The same shot always lands in the same place, but it's an{' '}
+            <em>impression</em> of the attack, not a recorded coordinate. The territory line and the peak
+            heights (possession tilt and chance quality) are real, engine-derived numbers.
+          </p>
+        </Section>
+
         <Section title="Honest limits">
           <p>
             The model is grounded in real data now, but it is still probabilistic entertainment — not a

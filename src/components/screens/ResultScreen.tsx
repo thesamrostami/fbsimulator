@@ -9,6 +9,7 @@ import { buildMatchReport } from '../../services/matchReport'
 import { buildWhyThisResult } from '../../services/whyThisResult'
 import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
+import { TerrainReplay } from '../match/TerrainReplay'
 import { InsightPanel } from '../result/InsightPanel'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
@@ -275,6 +276,28 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
 
       {tab === 'summary' && (
       <>
+      {/* The finished match, replayed as a 3D territory portrait — its own playhead */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-night-2/70 p-5"
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="font-display text-lg font-black uppercase tracking-widest text-floodlight">
+            The match, replayed
+          </h2>
+          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-floodlight/70">
+            3D
+          </span>
+        </div>
+        <TerrainReplay sim={sim} home={home} away={away} />
+        <p className="mt-2 text-[11px] leading-snug text-muted">
+          Two colored sheets share the pitch; the line where they meet is the territory the teams push back and
+          forth, peaks pop where shots happen, and a goal floods the spot. Play, scrub, or replay it.
+        </p>
+      </motion.div>
+
       {/* The insight: the 1,000-replay signal, ahead of the one-night story */}
       <motion.div
         initial={{ opacity: 0, y: 18 }}

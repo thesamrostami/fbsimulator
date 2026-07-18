@@ -15,6 +15,7 @@ import type {
   SlotAssignment,
   TeamSheet,
   TeamStrength,
+  MomentumTimelinePoint,
   XgTimelinePoint,
 } from './types'
 
@@ -350,6 +351,7 @@ export const HALFTIME_MINUTE = 45
  */
 export interface HalftimeState extends EngineContext {
   xgTimeline: XgTimelinePoint[]
+  momentumTimeline: MomentumTimelinePoint[]
   possessionHomeSum: number
   minutesPlayed: number
   options: SimOptions
@@ -371,6 +373,9 @@ function playMinutes(state: HalftimeState, from: number, to: number, segment: Se
     }
     state.possessionHomeSum += possHome
     state.minutesPlayed += 1
+    // Home-tilt of this minute's possession, for the momentum view. possHome
+    // already carries the goal/swing boosts, so this traces real momentum.
+    state.momentumTimeline.push({ minute, value: Math.round((possHome - 0.5) * 200) })
 
     // Random momentum swings when nothing else is boosting.
     if (minute > home.boostUntil && minute > away.boostUntil && rng.chance(TUNING.swingChance)) {
@@ -455,6 +460,7 @@ export function playFirstHalf(
     away,
     events: [],
     xgTimeline: [],
+    momentumTimeline: [],
     possessionHomeSum: 0,
     minutesPlayed: 0,
     options,
@@ -522,7 +528,7 @@ export function resumeMatch(state: HalftimeState, newHomeSheet: TeamSheet, newAw
 
 /** The post-90' tail every path shares: extra time, shootout, full-time, stats. */
 function finishMatch(state: HalftimeState): SimResult {
-  const { rng, commentary, events, home, away, options, xgTimeline, seed } = state
+  const { rng, commentary, events, home, away, options, xgTimeline, momentumTimeline, seed } = state
   const regulationScore = score(state)
 
   const wentToExtraTime = Boolean(options.knockout) && home.goals === away.goals
@@ -594,6 +600,7 @@ function finishMatch(state: HalftimeState): SimResult {
     winner,
     events,
     xgTimeline,
+    momentumTimeline,
     stats: { home: home.stats, away: away.stats },
   }
 }
@@ -640,6 +647,7 @@ export function cloneHalftimeState(state: HalftimeState, seed: number): Halftime
     away: cloneSide(state.away),
     events: [...state.events],
     xgTimeline: [...state.xgTimeline],
+    momentumTimeline: [...state.momentumTimeline],
     possessionHomeSum: state.possessionHomeSum,
     minutesPlayed: state.minutesPlayed,
     options: state.options,

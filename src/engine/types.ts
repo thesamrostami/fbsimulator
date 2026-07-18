@@ -141,6 +141,12 @@ export interface XgTimelinePoint {
   away: number
 }
 
+export interface MomentumTimelinePoint {
+  minute: number
+  /** -100 (away in total control) to 100 (home in total control), 0 = even. */
+  value: number
+}
+
 export interface SimOptions {
   /** Knockout tie: play extra time when level at 90', then penalties. */
   knockout?: boolean
@@ -192,6 +198,8 @@ export interface SimResult {
   events: MatchEvent[]
   /** Cumulative xG per minute, for the race chart. */
   xgTimeline: XgTimelinePoint[]
+  /** Home-tilt of possession per minute (-100..100), for the momentum view. */
+  momentumTimeline: MomentumTimelinePoint[]
   stats: { home: SideStats; away: SideStats }
 }
 
