@@ -347,7 +347,7 @@ const ALL: Player[] = [
   p('fra-thernandez', 'T. Hernandez', 25, 'DEF', 90, 60, 78, 78, 80),
   p('fra-lacroix', 'Lacroix', 6, 'DEF', 84, 32, 68, 82, 84),
   p('fra-kante', 'Kanté', 12, 'MID', 74, 58, 80, 84, 80),
-  p('fra-cherki', 'Cherki', 9, 'FWD', 82, 80, 88, 36, 58),
+  p('fra-cherki', 'Cherki', 9, 'MID', 82, 80, 88, 36, 58),
   p('fra-mateta', 'Mateta', 15, 'FWD', 78, 83, 62, 38, 88),
   p('fra-thuram', 'Thuram', 19, 'FWD', 87, 84, 74, 42, 86),
 

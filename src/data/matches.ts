@@ -73,6 +73,8 @@ export interface PlayedMatch {
   home: MatchSideDef
   away: MatchSideDef
   real: RealResult
+  /** Marks fixtures outside the main knockout path (rendered as secondary nodes). */
+  type?: 'third-place'
 }
 
 export interface LockedMatch {
@@ -529,10 +531,39 @@ export const MATCHES: Record<string, MatchDef> = {
     id: 'third-place',
     stage: 'Third-place play-off',
     date: '2026-07-18',
-    played: false,
-    homeTeamId: 'FRA',
-    awayTeamId: 'ENG',
+    played: true,
     type: 'third-place',
+    home: side('FRA', '4-3-3', [
+      'fra-maignan',
+      'fra-gusto', 'fra-konate', 'fra-lacroix', 'fra-thernandez',
+      'fra-zaire-emery', 'fra-cherki', 'fra-rabiot',
+      'fra-olise', 'fra-mbappe', 'fra-doue',
+    ], ['fra-kone', 'fra-risser', 'fra-barcola', 'fra-akliouche']),
+    away: side('ENG', '4-3-3', [
+      'eng-dhenderson',
+      'eng-quansah', 'eng-konsa', 'eng-guehi', 'eng-spence',
+      'eng-rice', 'eng-eze', 'eng-rogers',
+      'eng-saka', 'eng-toney', 'eng-rashford',
+    ], ['eng-jhenderson', 'eng-anderson', 'eng-trafford', 'eng-bellingham']),
+    real: {
+      score: { home: 4, away: 6 },
+      goals: [
+        { minute: 3, teamId: 'FRA' },
+        { minute: 18, teamId: 'FRA' },
+        { minute: 37, teamId: 'FRA' },
+        { minute: 45, teamId: 'FRA' },
+        { minute: 48, teamId: 'ENG' },
+        { minute: 54, teamId: 'ENG' },
+        { minute: 66, teamId: 'ENG' },
+        { minute: 87, teamId: 'ENG' },
+        { minute: 90, teamId: 'ENG' },
+        { minute: 90, teamId: 'ENG' },
+      ],
+      redCards: [],
+      possession: { home: 45, away: 55 },
+      shots: { home: { total: 18, onTarget: 9 }, away: { total: 18, onTarget: 10 } },
+      note: 'England trailed 0–4 at half-time and scored six unanswered to win.',
+    },
   },
 
   final: {

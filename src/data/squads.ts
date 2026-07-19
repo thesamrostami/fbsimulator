@@ -55,8 +55,8 @@ export const SQUADS: Record<TeamId, SquadInfo> = {
     players: [
       'fra-maignan', 'fra-risser', 'fra-samba',
       'fra-kounde', 'fra-upamecano', 'fra-saliba', 'fra-digne', 'fra-gusto', 'fra-konate', 'fra-lhernandez', 'fra-thernandez', 'fra-lacroix',
-      'fra-kone', 'fra-rabiot', 'fra-tchouameni', 'fra-zaire-emery', 'fra-kante',
-      'fra-dembele', 'fra-olise', 'fra-barcola', 'fra-mbappe', 'fra-doue', 'fra-akliouche', 'fra-cherki', 'fra-mateta', 'fra-thuram',
+      'fra-kone', 'fra-rabiot', 'fra-tchouameni', 'fra-zaire-emery', 'fra-kante', 'fra-cherki',
+      'fra-dembele', 'fra-olise', 'fra-barcola', 'fra-mbappe', 'fra-doue', 'fra-akliouche', 'fra-mateta', 'fra-thuram',
     ],
   },
   PAR: {

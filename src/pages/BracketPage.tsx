@@ -3,7 +3,7 @@ import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Wordmark } from '../components/brand/Wordmark'
 import { TeamFlag } from '../components/ui/TeamFlag'
-import { BRACKET_ROUNDS, MATCHES, type LockedMatch, type MatchDef, type PlayedMatch } from '../data/matches'
+import { BRACKET_ROUNDS, MATCHES, type MatchDef, type PlayedMatch } from '../data/matches'
 import { TEAMS, type TeamInfo } from '../data/teams'
 import { BTN_SECONDARY, FOCUS_RING } from '../ui/theme'
 
@@ -17,8 +17,57 @@ const STAGE_SHORT: Record<string, string> = {
   Final: 'Final',
 }
 
+/** Compact team row for the secondary third-place node (smaller than TeamRow). */
+function ThirdPlaceRow({ team, score, isWinner }: TeamRowProps) {
+  return (
+    <div className={`flex items-center gap-1.5 text-xs ${isWinner ? 'text-floodlight' : 'text-floodlight/55'}`}>
+      <TeamFlag teamId={team?.id ?? null} className="h-2.5 shrink-0" title="" />
+      <span className={`min-w-0 flex-1 truncate ${isWinner ? 'font-bold' : 'font-medium'}`}>
+        {team ? team.name : 'To be decided'}
+      </span>
+      <span className={`font-display text-sm font-black tabular-nums ${isWinner ? '' : 'text-muted'}`}>
+        {score ?? '·'}
+      </span>
+    </div>
+  )
+}
+
 /** Secondary node for the third-place play-off — deliberately quieter than the final. */
-function ThirdPlaceCard({ match, delay }: { match: LockedMatch; delay: number }) {
+function ThirdPlaceCard({ match, delay }: { match: MatchDef; delay: number }) {
+  const navigate = useNavigate()
+
+  if (match.played) {
+    const home = TEAMS[match.home.teamId]
+    const away = TEAMS[match.away.teamId]
+    const winner = winnerSide(match)
+    const winnerColor = TEAMS[match[winner].teamId].color
+    return (
+      <motion.button
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, type: 'spring', stiffness: 240, damping: 24 }}
+        whileHover={{ scale: 1.04, boxShadow: `0 0 0 1px ${winnerColor}88, 0 0 20px ${winnerColor}44` }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => navigate(`/match/${match.id}`)}
+        className={`w-full cursor-pointer rounded-lg border border-white/12 bg-night-2/70 px-2.5 py-2 text-left shadow-md shadow-black/30 backdrop-blur-sm transition-colors hover:border-white/30 ${FOCUS_RING}`}
+        aria-label={`Replay ${home.name} vs ${away.name} — third-place play-off`}
+      >
+        <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-muted">
+          <span>3rd place · {matchDateLabel(match.date)}</span>
+          {match.real.decidedBy && (
+            <span className="rounded border border-card-yellow/50 bg-card-yellow/10 px-1 text-card-yellow">
+              {match.real.decidedBy}
+            </span>
+          )}
+        </div>
+        <div className="space-y-0.5">
+          <ThirdPlaceRow team={home} score={match.real.score.home} isWinner={winner === 'home'} />
+          <ThirdPlaceRow team={away} score={match.real.score.away} isWinner={winner === 'away'} />
+        </div>
+      </motion.button>
+    )
+  }
+
   const home = match.homeTeamId ? TEAMS[match.homeTeamId] : null
   const away = match.awayTeamId ? TEAMS[match.awayTeamId] : null
   return (
@@ -305,7 +354,7 @@ export function BracketPage() {
                     {isFinal && (
                       <div className="absolute inset-x-0.5 bottom-[3%]">
                         <ThirdPlaceCard
-                          match={MATCHES['third-place'] as LockedMatch}
+                          match={MATCHES['third-place']}
                           delay={delay + 0.35}
                         />
                       </div>
