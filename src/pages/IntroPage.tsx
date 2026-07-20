@@ -91,7 +91,7 @@ export function IntroPage() {
         transition={{ delay: 1.55 }}
         className="mt-6 text-xs text-muted"
       >
-        14 real knockout matches · every lineup editable · 1,000 replays per kick-off
+        16 real knockout matches · every lineup editable · 1,000 replays per kick-off
         <span className="mx-2" aria-hidden="true">
           ·
         </span>

@@ -23,9 +23,56 @@
     <meta property="og:url" content="https://replaycup.sam-rostami.com/" />
     <meta property="og:image" content="https://replaycup.sam-rostami.com/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- First-paint loading state: shown before the JS bundle mounts (matters on
+         slow mobile connections). React replaces #root's contents on mount. -->
+    <style>
+      .app-loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.1rem;
+        background: #050d09;
+      }
+      .app-loading__ball {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 3px solid rgba(238, 245, 240, 0.14);
+        border-top-color: #2fbf71;
+        animation: app-loading-spin 0.9s linear infinite;
+      }
+      .app-loading__text {
+        margin: 0;
+        font-family: "Arial Narrow", "Helvetica Neue Condensed", system-ui, sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.32em;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        color: #7d9488;
+      }
+      @keyframes app-loading-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .app-loading__ball {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body class="bg-night text-floodlight">
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-loading" role="status" aria-label="Loading The Replay Cup">
+        <div class="app-loading__ball"></div>
+        <p class="app-loading__text">The Replay Cup</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

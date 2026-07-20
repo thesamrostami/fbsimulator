@@ -5,11 +5,10 @@ import { PLAYERS } from './players'
 import { TEAMS } from './teams'
 
 describe('match data', () => {
-  it('covers 15 played matches and 1 locked fixture (the final), with third place played', () => {
-    expect(PLAYED_MATCHES).toHaveLength(15)
+  it('covers all 16 knockout matches as played, with none left locked', () => {
+    expect(PLAYED_MATCHES).toHaveLength(16)
     const locked = Object.values(MATCHES).filter((m) => !m.played)
-    expect(locked).toHaveLength(1)
-    expect(locked.map((m) => m.id)).toEqual(['final'])
+    expect(locked).toHaveLength(0)
     // The third-place play-off sits outside the round-based bracket path.
     const bracketIds = BRACKET_ROUNDS.flatMap((round) => round.matchIds)
     expect(bracketIds).not.toContain('third-place')
@@ -18,6 +17,10 @@ describe('match data', () => {
     const thirdPlace = MATCHES['third-place']
     expect(thirdPlace.played).toBe(true)
     expect(thirdPlace.played && thirdPlace.type).toBe('third-place')
+    // The final is played and tagged as the title decider.
+    const final = MATCHES['final']
+    expect(final.played).toBe(true)
+    expect(final.played && final.type).toBe('final')
   })
 
   it.each(PLAYED_MATCHES.map((match) => [match.id, match] as const))(

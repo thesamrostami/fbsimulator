@@ -73,8 +73,12 @@ export interface PlayedMatch {
   home: MatchSideDef
   away: MatchSideDef
   real: RealResult
-  /** Marks fixtures outside the main knockout path (rendered as secondary nodes). */
-  type?: 'third-place'
+  /**
+   * Tags a fixture's role in the bracket. 'third-place' renders as a quieter
+   * secondary node; 'final' is the title decider (rendered like any other
+   * played knockout card, with the champion highlighted).
+   */
+  type?: 'third-place' | 'final'
 }
 
 export interface LockedMatch {
@@ -84,8 +88,8 @@ export interface LockedMatch {
   played: false
   homeTeamId: TeamId | null
   awayTeamId: TeamId | null
-  /** Marks fixtures outside the main knockout path (rendered as secondary nodes). */
-  type?: 'third-place'
+  /** Tags a fixture's role in the bracket (see PlayedMatch.type). */
+  type?: 'third-place' | 'final'
 }
 
 export type MatchDef = PlayedMatch | LockedMatch
@@ -570,9 +574,36 @@ export const MATCHES: Record<string, MatchDef> = {
     id: 'final',
     stage: 'Final',
     date: '2026-07-19',
-    played: false,
-    homeTeamId: 'ARG',
-    awayTeamId: 'ESP',
+    played: true,
+    type: 'final',
+    home: side('ARG', '4-3-3', [
+      'arg-emartinez',
+      'arg-montiel', 'arg-romero', 'arg-lmartinez', 'arg-tagliafico',
+      'arg-depaul', 'arg-enzo', 'arg-macallister',
+      'arg-ngonzalez', 'arg-messi', 'arg-alvarez',
+    ], ['arg-barco', 'arg-simeone', 'arg-nicopaz', 'arg-jmlopez']),
+    away: side('ESP', '4-3-3', [
+      'esp-simon',
+      'esp-porro', 'esp-cubarsi', 'esp-laporte', 'esp-cucurella',
+      'esp-rodri', 'esp-pedri', 'esp-fabian',
+      'esp-yamal', 'esp-oyarzabal', 'esp-olmo',
+    ], ['esp-zubimendi', 'esp-baena', 'esp-nico', 'esp-pubill']),
+    real: {
+      score: { home: 0, away: 1 },
+      decidedBy: 'AET',
+      goals: [{ minute: 106, teamId: 'ESP', extraTime: true }],
+      redCards: [{ minute: 105, teamId: 'ARG', player: 'Romero' }],
+      yellowCards: [
+        { minute: 41, teamId: 'ARG' },
+        { minute: 52, teamId: 'ARG' },
+        { minute: 82, teamId: 'ARG' },
+        { minute: 90, teamId: 'ARG' },
+        { minute: 105, teamId: 'ARG' },
+      ],
+      possession: { home: 32, away: 68 },
+      shots: { home: { total: 3, onTarget: 0 }, away: { total: 20, onTarget: 11 } },
+      note: 'Goalless after 90 minutes; a second yellow on 105 left Argentina a man short, and Spain struck in extra time to win it.',
+    },
   },
 }
 

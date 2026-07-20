@@ -56,12 +56,12 @@ export function HowItWorksPage() {
       <div className="mx-auto max-w-3xl space-y-5">
         <Section title="What's real" badge={<SourceBadge kind="real" />}>
           <p>
-            Everything factual about the 14 played matches comes from the public match records of the 2026 World Cup:
+            Everything factual about the 16 played matches comes from the public match records of the 2026 World Cup:
             the <strong>results and scorelines</strong>, <strong>goal minutes</strong>, <strong>cards</strong>,{' '}
             <strong>starting lineups and 26-man squads</strong> (verified against multiple sources),{' '}
             <strong>formations</strong>, <strong>possession splits</strong> and <strong>shot counts</strong>.
             And since v4, each team's <strong>baseline strength is fitted on real international results</strong> —
-            see the data sources below. The unplayed fixtures (third place and the final) are locked.
+            see the data sources below. The bracket is complete, through the third-place play-off and the final.
           </p>
         </Section>
 
@@ -278,7 +278,7 @@ export function HowItWorksPage() {
             editorial estimates until the FC 26 integration lands, and even then a video game's numbers are
             one editorial view of ability; and the minute-level engine is a stylized simplification that
             knows nothing about injuries, weather, referees or tactics beyond formation shapes. The
-            calibration suite checks that real winners win plausible shares across all 14 played matches —
+            calibration suite checks that real winners win plausible shares across all 16 played matches —
             that keeps the model honest, it does not make it an oracle.
           </p>
           <p>

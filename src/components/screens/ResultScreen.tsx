@@ -14,6 +14,9 @@ import { InsightPanel } from '../result/InsightPanel'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
 import { BTN_SECONDARY, FOCUS_RING } from '../../ui/theme'
+import { copyText } from '../../ui/clipboard'
+
+type CopyStatus = 'idle' | 'ok' | 'fail'
 
 interface ResultScreenProps {
   match: PlayedMatch
@@ -116,30 +119,22 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
   const why = useMemo(() => buildWhyThisResult(match, lineups), [match, lineups])
   const report = useMemo(() => buildMatchReport(match, sim), [match, sim])
   const [tab, setTab] = useState<'summary' | 'report'>('summary')
-  const [copied, setCopied] = useState(false)
-  const [reportCopied, setReportCopied] = useState(false)
+  const [summaryStatus, setSummaryStatus] = useState<CopyStatus>('idle')
+  const [reportStatus, setReportStatus] = useState<CopyStatus>('idle')
 
   const copyReport = async () => {
-    try {
-      await navigator.clipboard.writeText(report.text)
-      setReportCopied(true)
-      setTimeout(() => setReportCopied(false), 1800)
-    } catch {
-      // Clipboard is unavailable outside secure contexts; the list stays readable.
-    }
+    const ok = await copyText(report.text)
+    setReportStatus(ok ? 'ok' : 'fail')
+    if (ok) setTimeout(() => setReportStatus('idle'), 1800)
   }
 
   const topLine = monteCarlo.topScorelines[0]
   const summary = shareSummary(match, sim, monteCarlo, topLine ? `${topLine.home}–${topLine.away}` : '—')
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(summary)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // Clipboard is unavailable outside secure contexts; the text stays selectable.
-    }
+    const ok = await copyText(summary)
+    setSummaryStatus(ok ? 'ok' : 'fail')
+    if (ok) setTimeout(() => setSummaryStatus('idle'), 1800)
   }
 
   const simBadge = sim.shootout ? 'PENS' : sim.wentToExtraTime ? 'AET' : undefined
@@ -230,9 +225,18 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
               tap any event for the numbers behind it · seed {sim.seed}
             </span>
             <button onClick={copyReport} className={`ml-auto px-4 py-2 ${BTN_SECONDARY}`}>
-              {reportCopied ? '✓ Copied!' : 'Copy match report'}
+              {reportStatus === 'ok' ? '✓ Copied!' : reportStatus === 'fail' ? 'Select below to copy' : 'Copy match report'}
             </button>
           </div>
+          {reportStatus === 'fail' && (
+            <textarea
+              readOnly
+              aria-label="Match report text — select all and copy"
+              value={report.text}
+              onFocus={(e) => e.currentTarget.select()}
+              className="scroll-area mb-4 h-40 w-full resize-none rounded-lg border border-card-yellow/40 bg-night p-3 font-mono text-xs leading-relaxed text-floodlight/85"
+            />
+          )}
           <div className="flex flex-col gap-2">
             {report.entries.map((entry, index) =>
               entry.kind === 'event' ? (
@@ -476,9 +480,14 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
             {summary}
           </pre>
           <button onClick={copy} className={`shrink-0 px-5 py-3 ${BTN_SECONDARY}`}>
-            {copied ? '✓ Copied!' : 'Copy summary'}
+            {summaryStatus === 'ok' ? '✓ Copied!' : summaryStatus === 'fail' ? 'Select text to copy' : 'Copy summary'}
           </button>
         </div>
+        {summaryStatus === 'fail' && (
+          <p className="mt-2 text-[11px] text-card-yellow">
+            Couldn't reach the clipboard — select the text above and copy it manually.
+          </p>
+        )}
       </motion.div>
       </>
       )}

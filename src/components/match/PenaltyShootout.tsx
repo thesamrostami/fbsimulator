@@ -29,7 +29,7 @@ function TallyRow({ team, kicks, score, active }: { team: TeamInfo; kicks: Penal
       <span className="flex w-24 items-center gap-2 truncate text-sm font-bold text-floodlight sm:w-32">
         <TeamFlag teamId={team.id} className="h-3.5 shrink-0" title="" /> {team.shortName}
       </span>
-      <div className="flex flex-1 gap-1.5">
+      <div className="flex flex-1 flex-wrap gap-1.5">
         {kicks.map((kick, i) => (
           <motion.span
             key={i}

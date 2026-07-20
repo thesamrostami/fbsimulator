@@ -23,7 +23,7 @@ Deployment (Docker + nginx with SPA fallback, security headers and CSP, or any s
 ## Pages
 
 - **`/`** — animated intro under the floodlights.
-- **`/bracket`** — the knockout tree: 8 round-of-16 ties → 4 quarter-finals → 2 semi-finals → the final, with flags, real scores and AET/PENS badges. Finished matches glow and open their editor; the final and the third-place play-off render locked ("Not played yet") until they're actually played.
+- **`/bracket`** — the knockout tree: 8 round-of-16 ties → 4 quarter-finals → 2 semi-finals → the final (plus the third-place play-off), with flags, real scores and AET/PENS badges. All 16 matches are played: every card glows and opens its editor. Locked-card styling remains in the code for any future unplayed fixture.
 - **`/match/:id`** — lineup editor → animated simulation → result, for any played match.
 
 ## How it works

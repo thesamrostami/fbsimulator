@@ -24,6 +24,7 @@ import { RatingsBars } from '../pitch/RatingsBars'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
 import { BTN_SECONDARY, FOCUS_RING } from '../../ui/theme'
+import { useScrollFade } from '../../ui/useScrollFade'
 
 interface LineupEditorProps {
   match: PlayedMatch
@@ -108,6 +109,8 @@ export function LineupEditor({
     return id ? getPlayer(id) : null
   }, [selected, lineup])
 
+  const formationScroll = useScrollFade<HTMLDivElement>('x', [sideDef.formation])
+
   const squad = SQUADS[sideDef.teamId]
   // Bench grouped by natural position; each chip keeps its flat bench index for swaps.
   const benchGroups = useMemo(() => {
@@ -129,8 +132,10 @@ export function LineupEditor({
       .filter((group) => group.entries.length > 0)
   }, [sheet.bench, halftime, dismissed])
 
+  const benchScroll = useScrollFade<HTMLDivElement>('y', [side, sheet.bench.length, benchGroups.length])
+
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,26rem)_1fr]">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_1fr]">
       <LayoutGroup>
         <div>
           {/* Team toggle */}
@@ -171,7 +176,12 @@ export function LineupEditor({
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted">Formation</span>
               <span className="truncate text-[11px] text-muted">{describeModifiers(lineup.formation)}</span>
             </div>
-            <div className="scroll-area flex gap-1.5 overflow-x-auto pb-1" role="radiogroup" aria-label="Formation">
+            <div
+              ref={formationScroll}
+              className="scroll-area scroll-fade-x flex gap-1.5 overflow-x-auto pb-1"
+              role="radiogroup"
+              aria-label="Formation"
+            >
               {formationOptions(sideDef.formation).map((name) => {
                 const active = lineup.formation === name
                 const isReal = name === sideDef.formation
@@ -300,7 +310,7 @@ export function LineupEditor({
                 Partial bench — full squad unverified. Only players who featured in the real match are shown.
               </p>
             )}
-            <div className="scroll-area max-h-72 space-y-3 overflow-y-auto pr-1">
+            <div ref={benchScroll} className="scroll-area scroll-fade-y max-h-72 space-y-3 overflow-y-auto pr-1">
               {benchGroups.map((group) => (
                 <div key={group.line}>
                   <div className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted">

@@ -6,6 +6,7 @@ import { TeamFlag } from '../components/ui/TeamFlag'
 import { BRACKET_ROUNDS, MATCHES, type MatchDef, type PlayedMatch } from '../data/matches'
 import { TEAMS, type TeamInfo } from '../data/teams'
 import { BTN_SECONDARY, FOCUS_RING } from '../ui/theme'
+import { useScrollFade } from '../ui/useScrollFade'
 
 /** Seconds between each round's entrance. */
 const ROUND_STAGGER = 0.4
@@ -158,6 +159,12 @@ function PlayedCard({ match, delay }: { match: PlayedMatch; delay: number }) {
         <TeamRow team={home} score={match.real.score.home} isWinner={winner === 'home'} />
         <TeamRow team={away} score={match.real.score.away} isWinner={winner === 'away'} />
       </div>
+      {match.type === 'final' && (
+        <div className="mt-2 flex items-center gap-1.5 border-t border-card-yellow/25 pt-1.5 text-[10px] font-black uppercase tracking-widest text-card-yellow">
+          <span aria-hidden="true">🏆</span>
+          <span className="min-w-0 flex-1 truncate">{TEAMS[match[winner].teamId].name} — Champions</span>
+        </div>
+      )}
     </motion.button>
   )
 }
@@ -240,7 +247,8 @@ export function BracketPage() {
 
   // Mouse drag-to-pan for the horizontal scroll area (touch pans natively;
   // vertical scrolling belongs to the page).
-  const scroller = useRef<HTMLDivElement>(null)
+  const scroller = useRef<HTMLDivElement | null>(null)
+  const fadeRef = useScrollFade<HTMLDivElement>('x')
   const drag = useRef<{ x: number; left: number } | null>(null)
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = scroller.current
@@ -301,12 +309,15 @@ export function BracketPage() {
       {/* Horizontal scroll area: the page handles vertical scrolling, so the
           footer notes sit naturally below the whole bracket. */}
       <div
-        ref={scroller}
+        ref={(node) => {
+          scroller.current = node
+          fadeRef.current = node
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="scroll-area cursor-grab overflow-x-auto pb-4 active:cursor-grabbing"
+        className="scroll-area scroll-fade-x cursor-grab overflow-x-auto pb-4 active:cursor-grabbing"
       >
         <div className="mx-auto min-w-[66rem] max-w-6xl px-2 pb-4 sm:px-4">
           {/* Column headers, aligned with the columns below. */}

@@ -13,6 +13,7 @@ import { PenaltyShootout } from '../match/PenaltyShootout'
 import { XgRaceChart } from '../match/XgRaceChart'
 import { TeamFlag } from '../ui/TeamFlag'
 import { FOCUS_RING } from '../../ui/theme'
+import { useScrollFade } from '../../ui/useScrollFade'
 
 // three.js is heavy; keep it out of the main chunk so the 2D views stay light.
 const MomentumTerrain = lazy(() =>
@@ -196,6 +197,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
   )
   const goals = useMemo(() => events.filter((e) => e.type === 'goal'), [events])
   const visibleGoals = useMemo(() => goals.filter((g) => g.minute <= minute), [goals, minute])
+  const commentaryScroll = useScrollFade<HTMLDivElement>('y', [visibleEvents.length])
 
   const score = visibleGoals.reduce(
     (acc, goal) => ({
@@ -364,7 +366,10 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
 
             <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
               <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">Live commentary</h2>
-              <div className="scroll-area flex h-[19rem] flex-col gap-2 overflow-y-auto pr-1">
+              <div
+                ref={commentaryScroll}
+                className="scroll-area scroll-fade-y flex h-[19rem] flex-col gap-2 overflow-y-auto pr-1"
+              >
                 <AnimatePresence initial={false}>
                   {/* visibleEvents is a growing prefix of the events array, so the index is a stable key. */}
                   {visibleEvents

@@ -113,6 +113,65 @@ html {
   background-color: rgba(238, 245, 240, 0.38);
 }
 
+/*
+ * Touch scroll affordance. Our internal scrollbars are hover-only, so on a
+ * phone (no hover; iOS hides styled inner scrollbars) there is no visual cue
+ * that an area scrolls. `useScrollFade` toggles data-fade-start/end when there
+ * is hidden content in that direction; we fade that edge so "there's more" is
+ * obvious. The fade only appears on the edge with more content, so a
+ * fully-scrolled area shows crisp content on both ends.
+ */
+.scroll-fade-y {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+}
+
+.scroll-fade-x {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+}
+
+.scroll-fade-y[data-fade-start] {
+  --fade-start: 1.5rem;
+}
+.scroll-fade-y[data-fade-end] {
+  --fade-end: 1.5rem;
+}
+.scroll-fade-x[data-fade-start] {
+  --fade-start: 1.75rem;
+}
+.scroll-fade-x[data-fade-end] {
+  --fade-end: 1.75rem;
+}
+
 /* Intro hero ball: slow panel spin, gentle float, breathing ground shadow. */
 @keyframes ball-spin {
   to {
