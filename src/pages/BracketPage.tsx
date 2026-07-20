@@ -395,15 +395,6 @@ export function BracketPage() {
           </div>
         </div>
       </div>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6 }}
-        className="mx-auto mt-4 max-w-6xl text-center text-xs text-muted"
-      >
-        Locked cards haven't been played yet. Everything else is real — until you change it.
-      </motion.p>
     </main>
   )
 }
