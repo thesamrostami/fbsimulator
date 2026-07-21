@@ -116,6 +116,20 @@ export function HowItWorksPage() {
               of ability, not official statistics.
             </li>
           </ul>
+          <p>
+            <strong>Design inspiration.</strong> The match visualization takes its cue from Alexander
+            Bogachev's{' '}
+            <a
+              href="https://wc26.bogachev.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted underline underline-offset-2 transition-colors hover:text-floodlight"
+            >
+              FIFA World Cup 2026 Data Portraits
+            </a>{' '}
+            — turning raw match events into a living, almost topographical visual field. Ours isn't the
+            same build, but his work is the reason we reached for that feeling instead of a flat timeline.
+          </p>
         </Section>
 
         <Section title="The team-strength model">
