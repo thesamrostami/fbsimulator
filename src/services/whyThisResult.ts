@@ -2,8 +2,9 @@ import type { FormationName } from '../data/formations'
 import { buildRealSheet, formationSlots, type MatchSideDef, type PlayedMatch } from '../data/matches'
 import { TEAMS, type TeamInfo } from '../data/teams'
 import { computeSheetStrength } from '../engine/ratings'
-import type { OutOfPositionFlag, TeamStrength } from '../engine/types'
-import { buildSheet, type LineupState, type SideKey } from '../state/appState'
+import { DEFAULT_TACTICS, describeTactics } from '../engine/tactics'
+import type { OutOfPositionFlag, Tactics, TeamStrength } from '../engine/types'
+import { buildSheet, sameTactics, type LineupState, type SideKey } from '../state/appState'
 
 /**
  * The numbers behind one simulation setup: which phase gaps favoured whom,
@@ -50,6 +51,14 @@ export interface FormationChange {
   to: FormationName
 }
 
+export interface TacticsChange {
+  team: TeamInfo
+  from: Tactics
+  to: Tactics
+  /** The new instructions in words ("attacking mentality, high press"), or the neutral setting spelled out. */
+  summary: string
+}
+
 export interface WhyThisResult {
   /** All four phase comparisons for the lineups the sim used, biggest gap first. */
   gaps: PhaseGap[]
@@ -59,6 +68,8 @@ export interface WhyThisResult {
   shifts: PhaseShift[]
   /** Formations the user switched away from the real shape. */
   formationChanges: FormationChange[]
+  /** Team instructions the user moved off the neutral setting the real match is replayed with. */
+  tacticsChanges: TacticsChange[]
   /** True when the user changed anything from the real starting XIs. */
   edited: boolean
   /** The real possession split that weighted chance creation. */
@@ -67,8 +78,24 @@ export interface WhyThisResult {
 
 function sideEdited(sideDef: MatchSideDef, lineup: LineupState): boolean {
   if (lineup.formation !== sideDef.formation) return true
+  if (!sameTactics(lineup.tactics, DEFAULT_TACTICS)) return true
   const slots = formationSlots(sideDef.formation)
   return slots.some((slot, i) => lineup.startersBySlot[slot.id] !== sideDef.starters[i])
+}
+
+/** Instruction changes between two lineup snapshots, per side. */
+export function tacticsChangesBetween(
+  match: PlayedMatch,
+  before: Record<SideKey, LineupState>,
+  after: Record<SideKey, LineupState>,
+): TacticsChange[] {
+  const changes: TacticsChange[] = []
+  for (const key of ['home', 'away'] as const) {
+    if (sameTactics(before[key].tactics, after[key].tactics)) continue
+    const summary = describeTactics(after[key].tactics) || 'balanced, mid press, normal width'
+    changes.push({ team: TEAMS[match[key].teamId], from: before[key].tactics, to: after[key].tactics, summary })
+  }
+  return changes
 }
 
 function phases(strength: TeamStrength): Record<PhaseKey, number> {
@@ -181,7 +208,14 @@ export function buildWhyThisResult(
     .filter(([key]) => lineups[key].formation !== match[key].formation)
     .map(([key, team]) => ({ team, from: match[key].formation, to: lineups[key].formation }))
 
+  const neutral = { ...DEFAULT_TACTICS }
+  const tacticsChanges = tacticsChangesBetween(
+    match,
+    { home: { ...lineups.home, tactics: neutral }, away: { ...lineups.away, tactics: neutral } },
+    lineups,
+  )
+
   const edited = sideEdited(match.home, lineups.home) || sideEdited(match.away, lineups.away)
 
-  return { gaps, outOfPosition, shifts, formationChanges, edited, possession: match.real.possession }
+  return { gaps, outOfPosition, shifts, formationChanges, tacticsChanges, edited, possession: match.real.possession }
 }

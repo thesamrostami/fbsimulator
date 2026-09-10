@@ -8,9 +8,9 @@ import { TeamFlag } from '../components/ui/TeamFlag'
 import { FOCUS_RING } from '../ui/theme'
 import { getMatch, type PlayedMatch } from '../data/matches'
 import { TEAMS } from '../data/teams'
-import type { SimResult } from '../engine/types'
-import { matchSimOptions, resumeSecondHalf, runFirstHalf, runSimulation } from '../services/simulation'
-import { buildSheet, initialMatchState, matchAppReducer, type LineupState, type SideKey } from '../state/appState'
+import { replayScript, withChange, type MatchScript } from '../services/matchScript'
+import { continueMatch, kickOff, kickoffMonteCarlo } from '../services/simulation'
+import { initialMatchState, matchAppReducer, type LineupState, type SideKey } from '../state/appState'
 import { sessionSims } from '../state/sessionStore'
 
 function ScreenShell({ children }: { children: ReactNode }) {
@@ -33,91 +33,104 @@ function realScoreLabel(match: PlayedMatch): string {
   return `${score.home}–${score.away}${suffix}`
 }
 
+/**
+ * The interactive match: kick off → play to the break → (optionally) the
+ * substitution windows at 60' and 75' → the result. Every confirmed change
+ * is appended to the match script, which is what the session keeps; the
+ * insight Monte Carlo runs on the worker from kick-off and lands whenever
+ * it is ready.
+ */
 function MatchFlow({ match }: { match: PlayedMatch }) {
   const [state, dispatch] = useReducer(matchAppReducer, match, initialMatchState)
   const [simulating, setSimulating] = useState(false)
   const [resuming, setResuming] = useState(false)
-  // resumeMatch consumes the frozen state — a second call on the same handle
-  // must never start, even before React has re-rendered with the result.
+  // resume consumes the frozen state — a second call on the same handle must
+  // never start, even before React has re-rendered with the result.
   const resumeGuard = useRef(false)
   const home = TEAMS[match.home.teamId]
   const away = TEAMS[match.away.teamId]
 
-  const kickOff = useCallback(async () => {
+  /** Store a Monte Carlo when it lands, unless the match was restarted meanwhile. */
+  const scriptRef = useRef<MatchScript | null>(null)
+  const requestMonteCarlo = useCallback(
+    (script: MatchScript) => {
+      scriptRef.current = script
+      kickoffMonteCarlo(match, script.lineups)
+        .then((monteCarlo) => {
+          if (scriptRef.current?.seed === script.seed) dispatch({ type: 'monte-carlo', monteCarlo })
+        })
+        .catch(() => {
+          /* The result page shows the insight only when it has one. */
+        })
+    },
+    [match],
+  )
+
+  const kickOffMatch = useCallback(async () => {
     if (simulating) return
     setSimulating(true)
     try {
-      const homeSheet = buildSheet(match.home, state.lineups.home)
-      const awaySheet = buildSheet(match.away, state.lineups.away)
-      const { firstHalf, monteCarlo } = await runFirstHalf(homeSheet, awaySheet, matchSimOptions(match))
-      // Seed + lineups re-derive an unchanged match for the session store; a
-      // half-time edit overwrites this entry with the exact result later.
-      sessionSims.set(match.id, { seed: firstHalf.seed, lineups: state.lineups })
-      dispatch({ type: 'first-half', firstHalf, monteCarlo })
+      // Yield so the pressed button paints its state before the first half is played.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      const live = kickOff(match, state.lineups)
+      const script: MatchScript = { matchId: match.id, seed: live.seed, lineups: state.lineups, changes: [] }
+      sessionSims.set(match.id, script)
+      dispatch({ type: 'kickoff', live, script })
+      requestMonteCarlo(script)
     } finally {
       setSimulating(false)
     }
-  }, [simulating, state.lineups, match])
+  }, [simulating, state.lineups, match, requestMonteCarlo])
 
-  /** Play the second half from the paused state, with or without changes. */
+  /**
+   * Play on from the current pause with (possibly changed) lineups: to the
+   * next window when `until` is a minute, otherwise to the end.
+   */
   const resume = useCallback(
-    async (halftimeLineups: Record<SideKey, LineupState>, edited: boolean): Promise<SimResult | null> => {
-      if (!state.firstHalf || state.sim || resumeGuard.current) return null
+    async (lineups: Record<SideKey, LineupState>, edited: boolean, until: number | null): Promise<boolean> => {
+      if (!state.live || !state.script || state.sim || resumeGuard.current) return false
       resumeGuard.current = true
       setResuming(true)
       try {
-        // Unchanged: reuse the very sheets the first half was played with.
-        const homeSheet = edited ? buildSheet(match.home, halftimeLineups.home) : state.firstHalf.home.sheet
-        const awaySheet = edited ? buildSheet(match.away, halftimeLineups.away) : state.firstHalf.away.sheet
-        const sim = await resumeSecondHalf(state.firstHalf, homeSheet, awaySheet)
-        if (edited && state.monteCarlo) {
-          // Seed + kickoff lineups no longer reproduce this match — keep the result itself.
-          sessionSims.set(match.id, {
-            seed: sim.seed,
-            lineups: state.lineups,
-            halftime: { sim, monteCarlo: state.monteCarlo },
-          })
-        }
-        dispatch({ type: 'second-half', sim })
-        return sim
+        const pausedAt = state.live.minutesPlayed
+        const script = edited ? withChange(state.script, pausedAt, lineups) : state.script
+        const outcome = continueMatch(match, state.live, lineups, until)
+        sessionSims.set(match.id, script)
+        if ('finalScore' in outcome) dispatch({ type: 'finished', sim: outcome, script })
+        else dispatch({ type: 'paused', live: outcome, script })
+        return true
       } finally {
         resumeGuard.current = false
         setResuming(false)
       }
     },
-    [state.firstHalf, state.sim, state.monteCarlo, state.lineups, match],
+    [state.live, state.script, state.sim, match],
   )
 
-  /** To the result screen — playing out an untouched second half first if needed. */
+  /** To the result screen — playing out whatever remains, unchanged. */
   const finish = useCallback(async () => {
     if (!state.sim) {
-      const sim = await resume(state.lineups, false)
-      if (!sim) return
+      if (!state.live || !state.script) return
+      const lineups = state.script.changes.length
+        ? state.script.changes[state.script.changes.length - 1].lineups
+        : state.script.lineups
+      const ok = await resume(lineups, false, null)
+      if (!ok) return
     }
     dispatch({ type: 'screen', screen: 'result' })
-  }, [state.sim, state.lineups, resume])
+  }, [state.sim, state.live, state.script, resume])
 
   // Restore the last simulation of this match from the session store.
   useEffect(() => {
     const stored = sessionSims.get(match.id)
     if (!stored || state.sim) return
-    // A half-time-edited match can't be re-derived from seed+lineups: restore
-    // the stored result directly (module memory, so the objects are intact).
-    if (stored.halftime) {
-      dispatch({
-        type: 'restore',
-        sim: stored.halftime.sim,
-        monteCarlo: stored.halftime.monteCarlo,
-        lineups: stored.lineups,
-      })
-      return
-    }
     let cancelled = false
     ;(async () => {
-      const homeSheet = buildSheet(match.home, stored.lineups.home)
-      const awaySheet = buildSheet(match.away, stored.lineups.away)
-      const { sim, monteCarlo } = await runSimulation(homeSheet, awaySheet, matchSimOptions(match), stored.seed)
-      if (!cancelled) dispatch({ type: 'restore', sim, monteCarlo, lineups: stored.lineups })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (cancelled) return
+      const sim = replayScript(match, stored)
+      dispatch({ type: 'restore', sim, monteCarlo: null, script: stored })
+      requestMonteCarlo(stored)
     })()
     return () => {
       cancelled = true
@@ -157,18 +170,19 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
               match={match}
               lineups={state.lineups}
               dispatch={dispatch}
-              onKickOff={kickOff}
+              onKickOff={kickOffMatch}
               simulating={simulating}
             />
           </ScreenShell>
         )}
-        {state.screen === 'match' && state.firstHalf && (
+        {state.screen === 'match' && state.live && state.script && (
           <ScreenShell key="match">
             <MatchSim
               match={match}
-              firstHalf={state.firstHalf}
+              live={state.live}
+              pausedAt={state.pausedAt ?? state.live.minutesPlayed}
+              script={state.script}
               sim={state.sim}
-              lineups={state.lineups}
               home={home}
               away={away}
               resuming={resuming}
@@ -177,7 +191,7 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
             />
           </ScreenShell>
         )}
-        {state.screen === 'result' && state.sim && state.monteCarlo && (
+        {state.screen === 'result' && state.sim && state.script && (
           <ScreenShell key="result">
             <ResultScreen
               match={match}
@@ -185,7 +199,7 @@ function MatchFlow({ match }: { match: PlayedMatch }) {
               monteCarlo={state.monteCarlo}
               lineups={state.lineups}
               onEdit={() => dispatch({ type: 'screen', screen: 'editor' })}
-              onRerun={kickOff}
+              onRerun={kickOffMatch}
               rerunning={simulating}
             />
           </ScreenShell>

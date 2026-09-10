@@ -3,17 +3,17 @@
  * the tournament year worked in as a skewed score-bug chip. Pure CSS — no
  * asset files, gradient straight from the palette.
  */
-const CHIP_GRADIENT = 'linear-gradient(100deg, #2fbf71, #5aa9ff)'
+const CHIP_GRADIENT = 'linear-gradient(100deg, var(--color-brand-a), var(--color-brand-b))'
 
-export function Wordmark({ compact = false }: { compact?: boolean }) {
+export function Wordmark({ compact = false, small = false }: { compact?: boolean; small?: boolean }) {
   return (
     <span
       className={`inline-flex items-start font-display font-black uppercase leading-none tracking-tight ${
-        compact ? 'gap-1.5 text-2xl sm:text-3xl' : 'gap-2.5 text-6xl sm:text-8xl'
+        compact ? (small ? 'gap-1 text-xl sm:gap-1.5 sm:text-3xl' : 'gap-1.5 text-2xl sm:text-3xl') : 'gap-2.5 text-6xl sm:text-8xl'
       }`}
     >
       <span className="text-floodlight">
-        Replay <span className="bg-gradient-to-r from-mexico to-england bg-clip-text text-transparent">Cup</span>
+        Replay <span className="bg-gradient-to-r from-brand-a to-brand-b bg-clip-text text-transparent">Cup</span>
       </span>
       <span
         aria-label="26"

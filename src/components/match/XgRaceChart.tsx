@@ -23,10 +23,10 @@ const MB = 30
 const PLOT_W = W - ML - MR
 const PLOT_H = H - MT - MB
 
-const INK = 'rgba(238,245,240,0.87)'
-const INK_MUTED = 'rgba(238,245,240,0.55)'
-const GRID = 'rgba(238,245,240,0.08)'
-const SURFACE = '#081a10'
+const INK = 'color-mix(in srgb, var(--color-ink) 87%, transparent)'
+const INK_MUTED = 'color-mix(in srgb, var(--color-ink) 55%, transparent)'
+const GRID = 'color-mix(in srgb, var(--color-ink) 8%, transparent)'
+const SURFACE = 'var(--color-night-2)'
 
 export function XgRaceChart({ timeline, minute, goals, homeName, awayName, homeColor, awayColor, maxMinute }: XgRaceChartProps) {
   const [hoverMinute, setHoverMinute] = useState<number | null>(null)
@@ -192,7 +192,7 @@ export function XgRaceChart({ timeline, minute, goals, homeName, awayName, homeC
             <circle cx={x(hoverPoint.minute)} cy={y(hoverPoint.home)} r="3.5" fill={homeColor} stroke={SURFACE} strokeWidth="2" />
             <circle cx={x(hoverPoint.minute)} cy={y(hoverPoint.away)} r="3.5" fill={awayColor} stroke={SURFACE} strokeWidth="2" />
             <g transform={`translate(${x(hoverPoint.minute) + (tooltipOnLeft ? -118 : 10)}, ${MT + 6})`}>
-              <rect width="108" height="52" rx="6" fill="#0c2013" stroke="rgba(238,245,240,0.18)" />
+              <rect width="108" height="52" rx="6" fill="var(--color-night-2)" stroke="color-mix(in srgb, var(--color-ink) 18%, transparent)" />
               <text x="10" y="16" fontSize="10" fontWeight="700" fill={INK}>
                 {hoverPoint.minute}&#8242;
               </text>

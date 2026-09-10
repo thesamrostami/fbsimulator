@@ -1,12 +1,14 @@
 import { LayoutGroup, motion } from 'framer-motion'
-import { useMemo, useState, type Dispatch, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type Dispatch, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { describeModifiers, FORMATIONS, formationOptions, formationSlots } from '../../data/formations'
 import type { PlayedMatch } from '../../data/matches'
 import { getPlayer } from '../../data/players'
 import { SQUADS } from '../../data/squads'
-import { TEAMS } from '../../data/teams'
+import { TEAMS, tint } from '../../data/teams'
 import { computeAnchoredStrength, computeSheetStrength } from '../../engine/ratings'
-import type { Line } from '../../engine/types'
+import { describeProfile, TACTIC_DIALS } from '../../engine/tactics'
+import type { Line, Tactics } from '../../engine/types'
 import {
   buildSheet,
   countPersonnelChanges,
@@ -19,12 +21,80 @@ import {
 } from '../../state/appState'
 import { PlayerCard } from '../pitch/PlayerCard'
 import { Pitch } from '../pitch/Pitch'
-import { PlayerChip } from '../pitch/PlayerChip'
+import { ChipFace, PlayerChip } from '../pitch/PlayerChip'
 import { RatingsBars } from '../pitch/RatingsBars'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
 import { BTN_SECONDARY, FOCUS_RING } from '../../ui/theme'
+import { locationAttr, useChipDrag } from '../../ui/useChipDrag'
 import { useScrollFade } from '../../ui/useScrollFade'
+
+/** The three instruction dials. Neutral is what the real match is replayed with. */
+function TacticsPanel({
+  tactics,
+  accent,
+  onChange,
+}: {
+  tactics: Tactics
+  accent: string
+  onChange: (change: Partial<Tactics>) => void
+}) {
+  const chips = describeProfile(tactics)
+  return (
+    <div className="mb-3 rounded-xl border border-ink/10 bg-night-2/60 p-3" data-testid="tactics">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted">Instructions</span>
+        <span className="truncate text-[11px] text-muted">
+          {chips.length > 0 ? `${chips.length} effect${chips.length === 1 ? '' : 's'} in play` : 'as the real match was played'}
+        </span>
+      </div>
+      <div className="space-y-2.5">
+        {TACTIC_DIALS.map((dial) => {
+          const current = tactics[dial.key]
+          const option = dial.options.find((o) => o.value === current)
+          return (
+            <div key={dial.key}>
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-widest text-muted">{dial.label}</span>
+                <div role="radiogroup" aria-label={dial.label} className="flex min-w-0 flex-1 rounded-md border border-ink/10 bg-night/40 p-0.5">
+                  {dial.options.map((o) => {
+                    const active = o.value === current
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        title={o.blurb}
+                        onClick={() => onChange({ [dial.key]: o.value } as Partial<Tactics>)}
+                        className={`min-w-0 flex-1 whitespace-nowrap rounded px-1 py-1 font-display text-[11px] font-black tracking-wide transition-colors ${FOCUS_RING} ${
+                          active ? 'text-floodlight' : 'text-muted hover:text-floodlight'
+                        }`}
+                        style={active ? { background: tint(accent, 0.16), boxShadow: `inset 0 -2px 0 ${accent}` } : undefined}
+                      >
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <p className="ml-[4.5rem] mt-1 text-[10px] leading-snug text-muted">{option?.blurb}</p>
+            </div>
+          )
+        })}
+      </div>
+      {chips.length > 0 && (
+        <ul className="mt-1 flex flex-wrap gap-1.5" aria-label="Instruction effects">
+          {chips.map((chip) => (
+            <li key={chip} className="rounded border border-ink/10 bg-ink/5 px-1.5 py-0.5 text-[10px] tabular-nums text-floodlight/80">
+              {chip}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 interface LineupEditorProps {
   match: PlayedMatch
@@ -32,14 +102,22 @@ interface LineupEditorProps {
   dispatch: Dispatch<MatchAppAction>
   onKickOff: () => void
   simulating: boolean
-  /** 'halftime' turns on substitution limits and sent-off filtering. */
-  mode?: 'prematch' | 'halftime'
-  /** Halftime: the XIs that finished the first half — the sub-count baseline. */
+  /** 'pause' (half-time or a substitution window) turns on substitution limits and sent-off filtering. */
+  mode?: 'prematch' | 'pause' | 'halftime'
+  /** Pause: the minute the match is frozen at (labels). */
+  pauseMinute?: number
+  /** Pause: the XIs on the pitch at the pause — the sub-count baseline. */
   firstHalfStarters?: Record<SideKey, Record<string, string>>
-  /** Halftime: players sent off in the first half; shown nowhere selectable. */
+  /** Pause: substitutions already confirmed at earlier windows, per side. */
+  subsUsedBefore?: Record<SideKey, number>
+  /** Pause: players substituted off earlier — gone from the bench for good. */
+  unavailable?: Record<SideKey, ReadonlySet<string>>
+  /** Pause: players sent off; shown as holes on the pitch, nowhere selectable. */
   dismissed?: ReadonlySet<string>
-  /** Halftime: the "does this change help" strip, rendered in the side panel. */
+  /** Pause: the "does this change help" strip, rendered in the side panel. */
   insight?: ReactNode
+  /** Pause: extra controls under the buttons (the next-window toggle). */
+  footer?: ReactNode
 }
 
 export function LineupEditor({
@@ -49,14 +127,30 @@ export function LineupEditor({
   onKickOff,
   simulating,
   mode = 'prematch',
+  pauseMinute = 45,
   firstHalfStarters,
+  subsUsedBefore,
+  unavailable,
   dismissed,
   insight,
+  footer,
 }: LineupEditorProps) {
   const [side, setSide] = useState<SideKey>('home')
   const [selected, setSelected] = useState<ChipLocation | null>(null)
 
-  const halftime = mode === 'halftime'
+  // Drag-and-drop (mouse/pen) on top of tap-to-swap: a drop is just a swap.
+  const onDrop = useCallback(
+    (from: ChipLocation, to: ChipLocation) => {
+      dispatch({ type: 'swap', side, a: from, b: to })
+      setSelected(null)
+    },
+    [dispatch, side],
+  )
+  const { drag, handlersFor, consumeClick } = useChipDrag(onDrop)
+
+  const halftime = mode === 'halftime' || mode === 'pause'
+  const usedBefore = subsUsedBefore?.[side] ?? 0
+  const gone = unavailable?.[side]
   const sideDef = match[side]
   const team = TEAMS[sideDef.teamId]
   const lineup = lineups[side]
@@ -80,11 +174,12 @@ export function LineupEditor({
   )
   const subsUsed =
     halftime && firstHalfStarters
-      ? countPersonnelChanges(firstHalfStarters[side], lineup.startersBySlot)
+      ? usedBefore + countPersonnelChanges(firstHalfStarters[side], lineup.startersBySlot)
       : 0
   const subsMaxed = halftime && subsUsed >= MAX_HALFTIME_SUBS
 
   const handleChipTap = (location: ChipLocation) => {
+    if (consumeClick()) return
     if (selected === null) {
       setSelected(location)
       return
@@ -101,6 +196,16 @@ export function LineupEditor({
     setSide(next)
     setSelected(null)
   }
+
+  const draggedPlayer = useMemo(() => {
+    if (!drag) return null
+    const from = drag.from
+    const id = from.kind === 'slot' ? lineup.startersBySlot[from.slotId] : lineup.bench[from.index]
+    if (!id) return null
+    const player = getPlayer(id)
+    const role = from.kind === 'slot' ? (slots.find((s) => s.id === from.slotId)?.label ?? '') : player.ratings.position
+    return { player, role }
+  }, [drag, lineup, slots])
 
   const selectedPlayer = useMemo(() => {
     if (!selected) return null
@@ -122,7 +227,7 @@ export function LineupEditor({
     ]
     const entries = sheet.bench
       .map((player, index) => ({ player, index }))
-      .filter(({ player }) => !(halftime && dismissed?.has(player.id)))
+      .filter(({ player }) => !(halftime && (dismissed?.has(player.id) || gone?.has(player.id))))
     return lines
       .map(({ line, label }) => ({
         line,
@@ -130,9 +235,9 @@ export function LineupEditor({
         entries: entries.filter(({ player }) => player.ratings.position === line),
       }))
       .filter((group) => group.entries.length > 0)
-  }, [sheet.bench, halftime, dismissed])
+  }, [sheet.bench, halftime, dismissed, gone])
 
-  const benchScroll = useScrollFade<HTMLDivElement>('y', [side, sheet.bench.length, benchGroups.length])
+  const benchScroll = useScrollFade<HTMLDivElement>('y', [side, sheet.bench.length, benchGroups.length, gone])
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_1fr]">
@@ -150,15 +255,15 @@ export function LineupEditor({
                   onClick={() => switchSide(key)}
                   className={`relative min-w-0 flex-1 rounded-lg border px-2 py-2 font-display text-xs font-black uppercase tracking-widest transition-colors sm:px-4 sm:text-sm ${FOCUS_RING} ${
                     side === key
-                      ? 'border-white/25 text-floodlight'
-                      : 'border-white/10 text-muted hover:text-floodlight'
+                      ? 'border-ink/25 text-floodlight'
+                      : 'border-ink/10 text-muted hover:text-floodlight'
                   }`}
                 >
                   {side === key && (
                     <motion.span
                       layoutId="team-tab"
                       className="absolute inset-0 rounded-lg"
-                      style={{ background: `${keyTeam.color}22`, boxShadow: `inset 0 -2px 0 ${keyTeam.color}` }}
+                      style={{ background: tint(keyTeam.color, 0.14), boxShadow: `inset 0 -2px 0 ${keyTeam.color}` }}
                     />
                   )}
                   <span className="relative inline-flex max-w-full items-center gap-1.5 sm:gap-2">
@@ -171,7 +276,7 @@ export function LineupEditor({
           </div>
 
           {/* Formation picker: real shape by default, seven alternatives to test. */}
-          <div className="mb-3 rounded-xl border border-white/10 bg-night-2/60 p-3">
+          <div className="mb-3 rounded-xl border border-ink/10 bg-night-2/60 p-3">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted">Formation</span>
               <span className="truncate text-[11px] text-muted">{describeModifiers(lineup.formation)}</span>
@@ -197,10 +302,10 @@ export function LineupEditor({
                     }}
                     className={`shrink-0 rounded-md border px-2.5 py-1.5 font-display text-xs font-black tracking-wider transition-colors ${FOCUS_RING} ${
                       active
-                        ? 'border-white/30 text-floodlight'
-                        : 'border-white/10 text-muted hover:border-white/25 hover:text-floodlight'
+                        ? 'border-ink/30 text-floodlight'
+                        : 'border-ink/10 text-muted hover:border-ink/25 hover:text-floodlight'
                     }`}
-                    style={active ? { background: `${team.color}22`, boxShadow: `inset 0 -2px 0 ${team.color}` } : undefined}
+                    style={active ? { background: tint(team.color, 0.14), boxShadow: `inset 0 -2px 0 ${team.color}` } : undefined}
                   >
                     {name}
                     {isReal && <span className="ml-1 align-middle text-[9px] font-bold text-mexico">●</span>}
@@ -210,9 +315,18 @@ export function LineupEditor({
             </div>
           </div>
 
+          <TacticsPanel
+            tactics={lineup.tactics}
+            accent={team.color}
+            onChange={(change) => {
+              dispatch({ type: 'tactics', side, tactics: change })
+              setSelected(null)
+            }}
+          />
+
           {/* Halftime: the real-football personnel cap, live. */}
           {halftime && (
-            <div className="mb-3 rounded-xl border border-white/10 bg-night-2/60 px-3 py-2">
+            <div className="mb-3 rounded-xl border border-ink/10 bg-night-2/60 px-3 py-2">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
                   Substitutions
@@ -220,16 +334,16 @@ export function LineupEditor({
                 <span
                   data-testid="subs-counter"
                   className={`font-display text-sm font-black tabular-nums ${
-                    subsMaxed ? 'text-card-yellow' : 'text-floodlight'
+                    subsMaxed ? 'text-gold' : 'text-floodlight'
                   }`}
                 >
                   {subsUsed} / {MAX_HALFTIME_SUBS}
                 </span>
               </div>
               {subsMaxed && (
-                <p className="mt-1 text-[11px] text-card-yellow">
+                <p className="mt-1 text-[11px] text-gold">
                   No substitutions left — formation and position changes are still allowed, and you
-                  can undo a sub by bringing a first-half starter back.
+                  can undo a sub by bringing back a player who was on the pitch.
                 </p>
               )}
             </div>
@@ -292,6 +406,10 @@ export function LineupEditor({
                     selected={selected !== null && sameLocation(selected, location)}
                     flag={flagsByPlayer.get(assignment.player.id)}
                     onClick={() => handleChipTap(location)}
+                    drag={handlersFor(location)}
+                    location={locationAttr(location)}
+                    dragging={drag !== null && sameLocation(drag.from, location)}
+                    dropTarget={drag?.over !== null && drag?.over !== undefined && sameLocation(drag.over, location)}
                   />
                 </div>
               )
@@ -299,14 +417,14 @@ export function LineupEditor({
           </Pitch>
 
           {/* Bench: the full non-starting squad, grouped by position */}
-          <div data-testid="bench" className="mt-4 rounded-xl border border-white/10 bg-night-2/60 p-3">
+          <div data-testid="bench" className="mt-4 rounded-xl border border-ink/10 bg-night-2/60 p-3">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
                 Squad ({sheet.bench.length}) — tap to swap with a starter
               </span>
             </div>
             {!squad?.verified && (
-              <p className="mb-2 rounded-md border border-card-yellow/40 bg-card-yellow/10 px-2 py-1 text-[11px] font-semibold text-card-yellow">
+              <p className="mb-2 rounded-md border border-gold/40 bg-gold/10 px-2 py-1 text-[11px] font-semibold text-gold">
                 Partial bench — full squad unverified. Only players who featured in the real match are shown.
               </p>
             )}
@@ -331,6 +449,10 @@ export function LineupEditor({
                           selected={selected !== null && sameLocation(selected, location)}
                           disabled={locked}
                           onClick={() => handleChipTap(location)}
+                          drag={handlersFor(location, !locked)}
+                          location={locationAttr(location)}
+                          dragging={drag !== null && sameLocation(drag.from, location)}
+                          dropTarget={drag?.over !== null && drag?.over !== undefined && sameLocation(drag.over, location)}
                         />
                       )
                     })}
@@ -343,7 +465,7 @@ export function LineupEditor({
 
         {/* Side panel */}
         <div className="flex flex-col gap-5">
-          <div className="rounded-xl border border-white/10 bg-night-2/60 p-5">
+          <div className="rounded-xl border border-ink/10 bg-night-2/60 p-5">
             <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-black uppercase tracking-widest text-floodlight">
               <TeamFlag teamId={team.id} className="h-4" title="" /> {team.name} — live ratings
               <span className="ml-auto flex gap-1">
@@ -360,9 +482,9 @@ export function LineupEditor({
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-card-yellow/40 bg-card-yellow/10 p-4"
+              className="rounded-xl border border-gold/40 bg-gold/10 p-4"
             >
-              <h3 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-card-yellow">
+              <h3 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-gold">
                 Out of position
               </h3>
               <ul className="space-y-1 text-sm text-floodlight">
@@ -382,11 +504,13 @@ export function LineupEditor({
 
           {insight}
 
-          <div className="rounded-xl border border-white/10 bg-night-2/60 p-5 text-sm leading-relaxed text-muted">
+          <div className="rounded-xl border border-ink/10 bg-night-2/60 p-5 text-sm leading-relaxed text-muted">
             Tap a player to see his full ratings and pick him up, then tap where
             he should go — another shirt to swap positions, or a bench player to
-            substitute him in. Out-of-position players play worse: the further
-            from home, the bigger the penalty.
+            substitute him in. With a mouse you can also drag one shirt onto
+            another. Out-of-position players play worse: the further from home,
+            the bigger the penalty. Instructions change how possessions unfold —
+            they never change a player's ratings.
           </div>
 
           <div className="mt-auto flex flex-col gap-3 sm:flex-row">
@@ -397,7 +521,7 @@ export function LineupEditor({
               }}
               className={`px-5 py-3 ${BTN_SECONDARY}`}
             >
-              {halftime ? 'Reset to first-half XI' : 'Reset to real lineup'}
+              {halftime ? (pauseMinute === 45 ? 'Reset to first-half XI' : 'Reset to the XI on the pitch') : 'Reset to real lineup'}
             </button>
             <motion.button
               onClick={onKickOff}
@@ -412,14 +536,37 @@ export function LineupEditor({
               {halftime
                 ? simulating
                   ? 'Heading back out…'
-                  : 'Play the second half ▸'
+                  : pauseMinute === 45
+                    ? 'Play the second half ▸'
+                    : 'Play on ▸'
                 : simulating
-                  ? 'Simulating 1,000 worlds…'
+                  ? 'Kicking off…'
                   : 'Kick off ▸'}
             </motion.button>
           </div>
+          {footer}
         </div>
       </LayoutGroup>
+
+      {/* The drag ghost: a copy of the chip that follows the pointer above everything. */}
+      {drag &&
+        draggedPlayer &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            aria-hidden="true"
+            className="pointer-events-none fixed z-50 flex w-16 flex-col items-center rounded-xl border border-floodlight bg-night-2/95 px-1 pb-1 pt-1.5 shadow-2xl shadow-shade/60"
+            style={{
+              left: drag.x,
+              top: drag.y,
+              transform: 'translate(-50%, -50%) scale(1.08) rotate(-2deg)',
+              boxShadow: `0 0 0 2px ${team.color}, 0 12px 30px ${tint(team.color, 0.35)}`,
+            }}
+          >
+            <ChipFace player={draggedPlayer.player} roleLabel={draggedPlayer.role} accent={team.color} />
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

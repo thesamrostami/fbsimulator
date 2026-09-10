@@ -13,6 +13,7 @@ vi.mock('framer-motion', async (importOriginal) => {
 // The 3D pitch mounts a WebGL canvas jsdom can't run; stub it — this test is
 // about goal-celebration state, not the terrain.
 vi.mock('../match/MomentumTerrain', () => ({ MomentumTerrain: () => null }))
+vi.mock('../match/LivePitch', () => ({ LivePitch: () => null }))
 import { MemoryRouter } from 'react-router-dom'
 import { buildRealSheet, MATCHES, type PlayedMatch } from '../../data/matches'
 import { TEAMS } from '../../data/teams'
@@ -82,9 +83,10 @@ describe('MatchSim goal celebration (regression: overlay never dismissed)', () =
       <MemoryRouter>
         <MatchSim
           match={match}
-          firstHalf={firstHalf}
+          live={firstHalf}
+          pausedAt={45}
+          script={{ matchId: match.id, seed: sim.seed, lineups, changes: [] }}
           sim={sim}
-          lineups={lineups}
           home={TEAMS[match.home.teamId]}
           away={TEAMS[match.away.teamId]}
           resuming={false}
@@ -116,6 +118,6 @@ describe('MatchSim goal celebration (regression: overlay never dismissed)', () =
     }
     expect(screen.queryByText('Goal!')).toBeNull()
     // This test steps ~1600 render frames of the full match UI synchronously;
-    // give it headroom over the 5s default.
-  }, 20000)
+    // give it headroom over the 5s default (more under a parallel full run).
+  }, 60000)
 })

@@ -34,7 +34,7 @@ export function ProbabilityBars({ monteCarlo, home, away }: ProbabilityBarsProps
             title={`${row.label}: ${row.pct}% of ${runs} replays`}
           >
             <span className="w-28 shrink-0 text-sm font-semibold text-floodlight/85">{row.label}</span>
-            <div className="h-3.5 flex-1 rounded-sm bg-white/5">
+            <div className="h-3.5 flex-1 rounded-sm bg-ink/5">
               <motion.div
                 className="h-full"
                 style={{ background: row.color, borderRadius: '0 4px 4px 0' }}
@@ -77,7 +77,7 @@ export function ProbabilityBars({ monteCarlo, home, away }: ProbabilityBarsProps
               <span className="w-28 shrink-0 text-sm tabular-nums text-floodlight/85">
                 {home.shortName} {line.home}–{line.away} {away.shortName}
               </span>
-              <div className="h-2.5 flex-1 rounded-sm bg-white/5">
+              <div className="h-2.5 flex-1 rounded-sm bg-ink/5">
                 <motion.div
                   className="h-full"
                   style={{ background: NEUTRAL_MARK, borderRadius: '0 4px 4px 0' }}

@@ -6,11 +6,15 @@ import { TEAMS, type TeamInfo } from '../../data/teams'
 import type { MatchEvent, MonteCarloResult, SimResult } from '../../engine/types'
 import { buildKeyDifferences, shareSummary } from '../../services/keyDifferences'
 import { buildMatchReport } from '../../services/matchReport'
+import { rateMatch } from '../../services/playerRatings'
 import { buildWhyThisResult } from '../../services/whyThisResult'
 import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
 import { TerrainReplay } from '../match/TerrainReplay'
 import { InsightPanel } from '../result/InsightPanel'
+import { PlayerRatingsTable, RatingBadge } from '../result/PlayerRatingsTable'
+import { ShotMap } from '../result/ShotMap'
+import { StatsTable } from '../result/StatsTable'
 import { SourceBadge } from '../ui/SourceBadge'
 import { TeamFlag } from '../ui/TeamFlag'
 import { BTN_SECONDARY, FOCUS_RING } from '../../ui/theme'
@@ -21,7 +25,8 @@ type CopyStatus = 'idle' | 'ok' | 'fail'
 interface ResultScreenProps {
   match: PlayedMatch
   sim: SimResult
-  monteCarlo: MonteCarloResult
+  /** The kick-off insight; null while the worker is still replaying the 1,000 nights. */
+  monteCarlo: MonteCarloResult | null
   lineups: Record<SideKey, LineupState>
   onEdit: () => void
   onRerun: () => void
@@ -30,7 +35,7 @@ interface ResultScreenProps {
 
 function Badge({ children }: { children: string }) {
   return (
-    <span className="ml-2 inline-block rounded-md border border-card-yellow/50 bg-card-yellow/10 px-1.5 py-0.5 align-middle text-[10px] font-black uppercase tracking-widest text-card-yellow">
+    <span className="ml-2 inline-block rounded-md border border-gold/50 bg-gold/10 px-1.5 py-0.5 align-middle text-[10px] font-black uppercase tracking-widest text-gold">
       {children}
     </span>
   )
@@ -55,10 +60,10 @@ function ScorePanel({ title, home, away, score, badge, subline, highlight, realD
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 22, delay: highlight ? 0 : 0.12 }}
       className={`flex-1 rounded-2xl border p-6 text-center ${
-        highlight ? 'border-card-yellow/50 bg-card-yellow/5' : 'border-white/10 bg-night-2/70'
+        highlight ? 'border-gold/50 bg-gold/5' : 'border-ink/10 bg-night-2/70'
       }`}
     >
-      <div className={`mb-3 text-[11px] font-bold uppercase tracking-widest ${highlight ? 'text-card-yellow' : 'text-muted'}`}>
+      <div className={`mb-3 text-[11px] font-bold uppercase tracking-widest ${highlight ? 'text-gold' : 'text-muted'}`}>
         {title}
         {badge && <Badge>{badge}</Badge>}
         {realData && (
@@ -117,8 +122,9 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
   const away = TEAMS[match.away.teamId]
   const differences = useMemo(() => buildKeyDifferences(match, sim), [match, sim])
   const why = useMemo(() => buildWhyThisResult(match, lineups), [match, lineups])
-  const report = useMemo(() => buildMatchReport(match, sim), [match, sim])
-  const [tab, setTab] = useState<'summary' | 'report'>('summary')
+  const ratings = useMemo(() => rateMatch(sim), [sim])
+  const report = useMemo(() => buildMatchReport(match, sim, ratings), [match, sim, ratings])
+  const [tab, setTab] = useState<'summary' | 'analysis' | 'report'>('summary')
   const [summaryStatus, setSummaryStatus] = useState<CopyStatus>('idle')
   const [reportStatus, setReportStatus] = useState<CopyStatus>('idle')
 
@@ -128,10 +134,13 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
     if (ok) setTimeout(() => setReportStatus('idle'), 1800)
   }
 
-  const topLine = monteCarlo.topScorelines[0]
-  const summary = shareSummary(match, sim, monteCarlo, topLine ? `${topLine.home}–${topLine.away}` : '—')
+  const topLine = monteCarlo?.topScorelines[0]
+  const summary = monteCarlo
+    ? shareSummary(match, sim, monteCarlo, topLine ? `${topLine.home}–${topLine.away}` : '—', ratings.motm)
+    : null
 
   const copy = async () => {
+    if (!summary) return
     const ok = await copyText(summary)
     setSummaryStatus(ok ? 'ok' : 'fail')
     if (ok) setTimeout(() => setSummaryStatus('idle'), 1800)
@@ -188,10 +197,11 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
       </div>
 
       {/* Summary ↔ full match report */}
-      <div className="mb-5 flex gap-2" role="tablist" aria-label="Result view">
+      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Result view">
         {(
           [
             ['summary', 'Summary'],
+            ['analysis', 'Analysis'],
             ['report', 'Match report'],
           ] as const
         ).map(([key, label]) => (
@@ -200,10 +210,10 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
             role="tab"
             aria-selected={tab === key}
             onClick={() => setTab(key)}
-            className={`rounded-lg border px-5 py-2 font-display text-sm font-black uppercase tracking-widest transition-colors ${FOCUS_RING} ${
+            className={`rounded-lg border px-3 py-2 font-display text-xs font-black uppercase tracking-wider transition-colors sm:px-5 sm:text-sm sm:tracking-widest ${FOCUS_RING} ${
               tab === key
-                ? 'border-card-yellow/50 bg-card-yellow/10 text-card-yellow'
-                : 'border-white/10 text-muted hover:border-white/30 hover:text-floodlight'
+                ? 'border-gold/50 bg-gold/10 text-gold'
+                : 'border-ink/10 text-muted hover:border-ink/30 hover:text-floodlight'
             }`}
           >
             {label}
@@ -211,11 +221,33 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         ))}
       </div>
 
+      {tab === 'analysis' && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="mb-5 space-y-5">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr]">
+            <div className="rounded-2xl border border-ink/10 bg-night-2/70 p-6">
+              <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">Match stats</h2>
+              <StatsTable home={home} away={away} stats={sim.stats} />
+            </div>
+            <div className="rounded-2xl border border-ink/10 bg-night-2/70 p-6">
+              <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">Shot map</h2>
+              <ShotMap events={sim.events} home={home} away={away} />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-ink/10 bg-night-2/70 p-6">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <h2 className="font-display text-lg font-black uppercase tracking-widest text-floodlight">Player ratings</h2>
+              <SourceBadge kind="estimated" />
+            </div>
+            <PlayerRatingsTable ratings={ratings} home={home} away={away} />
+          </div>
+        </motion.div>
+      )}
+
       {tab === 'report' && (
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-5 rounded-2xl border border-white/10 bg-night-2/70 p-6"
+          className="mb-5 rounded-2xl border border-ink/10 bg-night-2/70 p-6"
         >
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <h2 className="font-display text-lg font-black uppercase tracking-widest text-floodlight">
@@ -234,7 +266,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
               aria-label="Match report text — select all and copy"
               value={report.text}
               onFocus={(e) => e.currentTarget.select()}
-              className="scroll-area mb-4 h-40 w-full resize-none rounded-lg border border-card-yellow/40 bg-night p-3 font-mono text-xs leading-relaxed text-floodlight/85"
+              className="scroll-area mb-4 h-40 w-full resize-none rounded-lg border border-gold/40 bg-night p-3 font-mono text-xs leading-relaxed text-floodlight/85"
             />
           )}
           <div className="flex flex-col gap-2">
@@ -249,7 +281,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
               ) : (
                 <div
                   key={index}
-                  className="flex items-start gap-3 rounded-lg border border-white/10 bg-night-2/80 px-3 py-2.5"
+                  className="flex items-start gap-3 rounded-lg border border-ink/10 bg-night-2/80 px-3 py-2.5"
                   style={{
                     borderLeft: `3px solid ${(entry.kick.side === 'home' ? home : away).color}`,
                   }}
@@ -280,25 +312,58 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
 
       {tab === 'summary' && (
       <>
+      {/* At a glance: the man of the match and the headline numbers. */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="mb-5 grid gap-5 rounded-2xl border border-ink/10 bg-night-2/70 p-6 md:grid-cols-[minmax(0,18rem)_1fr]"
+      >
+        {ratings.motm && (
+          <div className="flex items-center gap-4 md:border-r md:border-ink/10 md:pr-5" data-testid="motm">
+            <RatingBadge rating={ratings.motm.rating} large />
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-widest text-gold">★ Man of the match</div>
+              <div className="font-display text-xl font-black uppercase leading-tight tracking-wide text-floodlight">
+                {ratings.motm.name}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted">
+                <TeamFlag teamId={(ratings.motm.side === 'home' ? home : away).id} className="h-3" title="" />
+                <span style={{ color: (ratings.motm.side === 'home' ? home : away).color }}>
+                  {(ratings.motm.side === 'home' ? home : away).shortName}
+                </span>
+                · {ratings.motm.label}
+                {ratings.motm.stats.goals > 0 && ` · ${ratings.motm.stats.goals} goal${ratings.motm.stats.goals === 1 ? '' : 's'}`}
+                {ratings.motm.stats.assists > 0 && ` · ${ratings.motm.stats.assists} assist${ratings.motm.stats.assists === 1 ? '' : 's'}`}
+                {ratings.motm.line === 'GK' && ratings.motm.stats.saves > 0 && ` · ${ratings.motm.stats.saves} saves`}
+              </div>
+              <button
+                onClick={() => setTab('analysis')}
+                className={`mt-1 rounded text-[11px] font-semibold text-muted underline-offset-2 hover:text-floodlight hover:underline ${FOCUS_RING}`}
+              >
+                All ratings, stats and the shot map →
+              </button>
+            </div>
+          </div>
+        )}
+        <StatsTable home={home} away={away} stats={sim.stats} compact />
+      </motion.div>
+
       {/* The finished match, replayed as a 3D territory portrait — its own playhead */}
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-night-2/70 p-5"
+        className="mb-5 overflow-hidden rounded-2xl border border-ink/10 bg-night-2/70 p-5"
       >
         <div className="mb-3 flex items-center gap-2">
           <h2 className="font-display text-lg font-black uppercase tracking-widest text-floodlight">
             The match, replayed
           </h2>
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-floodlight/70">
-            3D
-          </span>
         </div>
         <TerrainReplay sim={sim} home={home} away={away} />
         <p className="mt-2 text-[11px] leading-snug text-muted">
-          Two colored sheets share the pitch; the line where they meet is the territory the teams push back and
-          forth, peaks pop where shots happen, and a goal floods the spot. Play, scrub, or replay it.
+          Every pass, shot and card of this replay on the 3D pitch — play, scrub, or watch it again.
         </p>
       </motion.div>
 
@@ -307,15 +372,21 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="mb-5 rounded-2xl border border-card-yellow/50 bg-card-yellow/5 p-6"
+        className="mb-5 rounded-2xl border border-gold/50 bg-gold/5 p-6"
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <h2 className="font-display text-lg font-black uppercase tracking-widest text-card-yellow">
+          <h2 className="font-display text-lg font-black uppercase tracking-widest text-gold">
             {why.edited ? 'Did your changes help?' : 'What 1,000 replays say'}
           </h2>
           <SourceBadge kind="estimated" />
         </div>
-        <InsightPanel match={match} monteCarlo={monteCarlo} why={why} home={home} away={away} />
+        {monteCarlo ? (
+          <InsightPanel match={match} monteCarlo={monteCarlo} why={why} home={home} away={away} />
+        ) : (
+          <p className="animate-pulse text-sm text-muted" data-testid="insight-pending">
+            Replaying these lineups 1,000 times…
+          </p>
+        )}
       </motion.div>
 
       {/* Goal-by-goal comparison */}
@@ -323,7 +394,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="mb-5 grid gap-6 rounded-2xl border border-white/10 bg-night-2/70 p-6 sm:grid-cols-2"
+        className="mb-5 grid gap-6 rounded-2xl border border-ink/10 bg-night-2/70 p-6 sm:grid-cols-2"
       >
         <GoalMinutes title="Goals in your replay" entries={simGoalEntries} />
         <GoalMinutes title="Goals on the real night" entries={realGoalEntries} />
@@ -334,7 +405,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="mb-5 rounded-2xl border border-white/10 bg-night-2/70 p-6"
+        className="mb-5 rounded-2xl border border-ink/10 bg-night-2/70 p-6"
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <h2 className="font-display text-lg font-black uppercase tracking-widest text-floodlight">
@@ -443,7 +514,7 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="rounded-2xl border border-white/10 bg-night-2/70 p-6"
+        className="rounded-2xl border border-ink/10 bg-night-2/70 p-6"
       >
         <h2 className="mb-4 font-display text-lg font-black uppercase tracking-widest text-floodlight">
           What changed
@@ -473,18 +544,18 @@ export function ResultScreen({ match, sim, monteCarlo, lineups, onEdit, onRerun,
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
-        className="mt-5 rounded-2xl border border-white/10 bg-night-2/70 p-6"
+        className="mt-5 rounded-2xl border border-ink/10 bg-night-2/70 p-6"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <pre className="scroll-area flex-1 overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-night p-4 font-mono text-xs leading-relaxed text-floodlight/85">
-            {summary}
+          <pre className="scroll-area flex-1 overflow-x-auto whitespace-pre-wrap rounded-lg border border-ink/10 bg-night p-4 font-mono text-xs leading-relaxed text-floodlight/85">
+            {summary ?? 'Summary ready once the 1,000 replays land…'}
           </pre>
-          <button onClick={copy} className={`shrink-0 px-5 py-3 ${BTN_SECONDARY}`}>
+          <button onClick={copy} disabled={!summary} className={`shrink-0 px-5 py-3 disabled:opacity-50 ${BTN_SECONDARY}`}>
             {summaryStatus === 'ok' ? '✓ Copied!' : summaryStatus === 'fail' ? 'Select text to copy' : 'Copy summary'}
           </button>
         </div>
         {summaryStatus === 'fail' && (
-          <p className="mt-2 text-[11px] text-card-yellow">
+          <p className="mt-2 text-[11px] text-gold">
             Couldn't reach the clipboard — select the text above and copy it manually.
           </p>
         )}

@@ -4,7 +4,9 @@ import { getPlayer } from '../data/players'
 import { SQUADS } from '../data/squads'
 import { TEAMS } from '../data/teams'
 import type { HalftimeState } from '../engine/simulate'
-import type { MonteCarloResult, SimResult, TeamSheet } from '../engine/types'
+import { DEFAULT_TACTICS } from '../engine/tactics'
+import type { MonteCarloResult, SimResult, Tactics, TeamSheet } from '../engine/types'
+import type { MatchScript } from '../services/matchScript'
 
 export type Screen = 'editor' | 'match' | 'result'
 export type SideKey = 'home' | 'away'
@@ -13,6 +15,8 @@ export interface LineupState {
   formation: FormationName
   startersBySlot: Record<string, string>
   bench: string[]
+  /** Team instructions; the real match is replayed with the neutral setting. */
+  tactics: Tactics
 }
 
 /** A tappable place a player can occupy: a formation slot or a bench seat. */
@@ -26,21 +30,31 @@ export function sameLocation(a: ChipLocation, b: ChipLocation): boolean {
 
 export interface MatchAppState {
   screen: Screen
+  /** The kick-off lineups (editable before kick-off; the insight's "your XI"). */
   lineups: Record<SideKey, LineupState>
-  /** Live engine state from kickoff, frozen at 45'; null before kickoff and after a restore. */
-  firstHalf: HalftimeState | null
-  /** The full result — null from kickoff until the second half has been played. */
+  /** The live engine handle, frozen at a pause; null before kick-off and after a restore. */
+  live: HalftimeState | null
+  /** The minute the live handle is frozen at — bumps on every pause so memos refresh. */
+  pausedAt: number | null
+  /** The match as data: seed, kick-off lineups and every confirmed change. */
+  script: MatchScript | null
+  /** The full result — null until the match has been played out. */
   sim: SimResult | null
+  /** The kick-off insight; arrives from the worker shortly after kick-off. */
   monteCarlo: MonteCarloResult | null
 }
 
 export type MatchAppAction =
   | { type: 'swap'; side: SideKey; a: ChipLocation; b: ChipLocation }
   | { type: 'formation'; side: SideKey; formation: FormationName }
+  | { type: 'tactics'; side: SideKey; tactics: Partial<Tactics> }
   | { type: 'reset'; side: SideKey; sideDef: MatchSideDef }
-  | { type: 'first-half'; firstHalf: HalftimeState; monteCarlo: MonteCarloResult }
-  | { type: 'second-half'; sim: SimResult }
-  | { type: 'restore'; sim: SimResult; monteCarlo: MonteCarloResult; lineups: Record<SideKey, LineupState> }
+  | { type: 'kickoff'; live: HalftimeState; script: MatchScript }
+  | { type: 'monte-carlo'; monteCarlo: MonteCarloResult }
+  /** The match played on to the next pause (same handle, now frozen later). */
+  | { type: 'paused'; live: HalftimeState; script: MatchScript }
+  | { type: 'finished'; sim: SimResult; script: MatchScript }
+  | { type: 'restore'; sim: SimResult; monteCarlo: MonteCarloResult | null; script: MatchScript }
   | { type: 'screen'; screen: Screen }
 
 /**
@@ -61,14 +75,21 @@ export function realLineupState(sideDef: MatchSideDef): LineupState {
     formation: sideDef.formation,
     startersBySlot: Object.fromEntries(slots.map((slot, i) => [slot.id, sideDef.starters[i]])),
     bench: benchFor(sideDef),
+    tactics: { ...DEFAULT_TACTICS },
   }
+}
+
+export function sameTactics(a: Tactics, b: Tactics): boolean {
+  return a.mentality === b.mentality && a.pressing === b.pressing && a.width === b.width
 }
 
 export function initialMatchState(match: PlayedMatch): MatchAppState {
   return {
     screen: 'editor',
     lineups: { home: realLineupState(match.home), away: realLineupState(match.away) },
-    firstHalf: null,
+    live: null,
+    pausedAt: null,
+    script: null,
     sim: null,
     monteCarlo: null,
   }
@@ -114,19 +135,45 @@ export function matchAppReducer(state: MatchAppState, action: MatchAppAction): M
         },
       }
     }
+    case 'tactics': {
+      const lineup = state.lineups[action.side]
+      const tactics = { ...lineup.tactics, ...action.tactics }
+      if (sameTactics(tactics, lineup.tactics)) return state
+      return { ...state, lineups: { ...state.lineups, [action.side]: { ...lineup, tactics } } }
+    }
     case 'reset':
       return {
         ...state,
         lineups: { ...state.lineups, [action.side]: realLineupState(action.sideDef) },
       }
-    case 'first-half':
-      return { ...state, firstHalf: action.firstHalf, sim: null, monteCarlo: action.monteCarlo, screen: 'match' }
-    case 'second-half':
-      // The match screen keeps playing from 45' — the screen doesn't change.
-      return { ...state, sim: action.sim }
+    case 'kickoff':
+      return {
+        ...state,
+        live: action.live,
+        pausedAt: action.live.minutesPlayed,
+        script: action.script,
+        sim: null,
+        monteCarlo: null,
+        screen: 'match',
+      }
+    case 'monte-carlo':
+      return { ...state, monteCarlo: action.monteCarlo }
+    case 'paused':
+      // The match screen keeps playing — only the frozen minute moves.
+      return { ...state, live: action.live, pausedAt: action.live.minutesPlayed, script: action.script }
+    case 'finished':
+      return { ...state, sim: action.sim, script: action.script }
     case 'restore':
-      // Re-derived from the session-stored seed: jump straight to the result.
-      return { lineups: action.lineups, firstHalf: null, sim: action.sim, monteCarlo: action.monteCarlo, screen: 'result' }
+      // Re-derived from the stored script: jump straight to the result.
+      return {
+        lineups: action.script.lineups,
+        live: null,
+        pausedAt: null,
+        script: action.script,
+        sim: action.sim,
+        monteCarlo: action.monteCarlo,
+        screen: 'result',
+      }
     case 'screen':
       return { ...state, screen: action.screen }
   }
@@ -150,32 +197,52 @@ export function countPersonnelChanges(
   return Object.values(newStarters).filter((id) => !before.has(id)).length
 }
 
+/** Substitution allowance for a pause: what was used before it and who can no longer play. */
+export interface PauseAllowance {
+  /** Confirmed substitutions before this pause, per side. */
+  used: Record<SideKey, number>
+  /** Players who have left the pitch for good (substituted off or sent off), per side. */
+  unavailable: Record<SideKey, ReadonlySet<string>>
+}
+
+const NO_ALLOWANCE: PauseAllowance = {
+  used: { home: 0, away: 0 },
+  unavailable: { home: new Set(), away: new Set() },
+}
+
 /**
- * Reducer for the half-time editor: the same swap/formation actions as
- * matchAppReducer over bare lineups, except a swap that would exceed
- * MAX_HALFTIME_SUBS personnel changes vs the XI that finished the first half
- * is rejected outright, and 'reset' returns to that XI (not the real one).
+ * Reducer for a pause editor (half-time or a substitution window): the same
+ * swap/formation/tactics actions as matchAppReducer over bare lineups,
+ * except a swap is rejected outright when it would exceed the match's
+ * MAX_HALFTIME_SUBS personnel changes (earlier windows included) or bring
+ * back a player who has already left the pitch; 'reset' returns to the XI
+ * on the pitch at the pause (not the real one).
  */
-export function makeHalftimeReducer(firstHalf: Record<SideKey, LineupState>) {
+export function makePauseReducer(baseline: Record<SideKey, LineupState>, allowance: PauseAllowance = NO_ALLOWANCE) {
   return (
     lineups: Record<SideKey, LineupState>,
     action: MatchAppAction,
   ): Record<SideKey, LineupState> => {
-    if (action.type === 'reset') return { ...lineups, [action.side]: firstHalf[action.side] }
-    if (action.type !== 'swap' && action.type !== 'formation') return lineups
+    if (action.type === 'reset') return { ...lineups, [action.side]: baseline[action.side] }
+    if (action.type !== 'swap' && action.type !== 'formation' && action.type !== 'tactics') return lineups
     const next = matchAppReducer(
-      { screen: 'editor', lineups, firstHalf: null, sim: null, monteCarlo: null },
+      { screen: 'editor', lineups, live: null, pausedAt: null, script: null, sim: null, monteCarlo: null },
       action,
     ).lineups
-    if (
-      action.type === 'swap' &&
-      countPersonnelChanges(firstHalf[action.side].startersBySlot, next[action.side].startersBySlot) >
-        MAX_HALFTIME_SUBS
-    ) {
-      return lineups
+    if (action.type === 'swap') {
+      const side = action.side
+      const fresh = countPersonnelChanges(baseline[side].startersBySlot, next[side].startersBySlot)
+      if (allowance.used[side] + fresh > MAX_HALFTIME_SUBS) return lineups
+      const xi = Object.values(next[side].startersBySlot)
+      if (xi.some((id) => allowance.unavailable[side].has(id))) return lineups
     }
     return next
   }
+}
+
+/** Half-time is the first pause: nothing used yet, nobody gone (bar red cards, handled by the editor). */
+export function makeHalftimeReducer(firstHalf: Record<SideKey, LineupState>) {
+  return makePauseReducer(firstHalf)
 }
 
 /** Materialise the engine's TeamSheet from the current editable lineup. */
@@ -187,6 +254,7 @@ export function buildSheet(sideDef: MatchSideDef, lineup: LineupState): TeamShee
     color: team.color,
     formation: lineup.formation,
     modifiers: FORMATIONS[lineup.formation].modifiers,
+    tactics: lineup.tactics,
     anchor: anchorFor(sideDef),
     starters: formationSlots(lineup.formation).map((slot) => ({
       slot,

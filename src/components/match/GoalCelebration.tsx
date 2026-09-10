@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion'
-import { isTeamId, TEAMS } from '../../data/teams'
+import { isTeamId, TEAMS, tint } from '../../data/teams'
 import type { MatchEvent } from '../../engine/types'
 
-const FALLBACK = { color: '#eef5f0' }
+const FALLBACK = { color: 'var(--color-floodlight)' }
 
 /** Full-screen burst when a goal crosses the playhead. Mounted inside AnimatePresence. */
 export function GoalCelebration({ event }: { event: MatchEvent }) {
@@ -17,7 +17,7 @@ export function GoalCelebration({ event }: { event: MatchEvent }) {
       <motion.div
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(60% 60% at 50% 50%, ${team.color}40, transparent 70%)`,
+          background: `radial-gradient(60% 60% at 50% 50%, ${tint(team.color, 0.25)}, transparent 70%)`,
         }}
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1.15, opacity: 1 }}

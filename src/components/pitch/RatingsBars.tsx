@@ -21,7 +21,7 @@ export function RatingsBars({ strength, accent }: RatingsBarsProps) {
         return (
           <div key={key} className="flex items-center gap-3">
             <span className="w-9 text-[11px] font-bold tracking-widest text-muted">{label}</span>
-            <div className="h-3 flex-1 overflow-hidden rounded-sm bg-white/5">
+            <div className="h-3 flex-1 overflow-hidden rounded-sm bg-ink/5">
               <motion.div
                 className="h-full"
                 style={{ background: accent, borderRadius: '0 4px 4px 0' }}

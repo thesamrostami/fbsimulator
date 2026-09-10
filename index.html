@@ -10,6 +10,8 @@
       content="An independent, fan-made what-if simulator for the 2026 World Cup knockout stage. Rewrite the knockouts. See what could have been."
     />
     <meta name="theme-color" content="#050d09" />
+    <!-- Theme before first paint (external file: the deploy CSP blocks inline scripts). -->
+    <script src="/theme-init.js"></script>
 
     <!-- Social share cards (LinkedIn/Twitter read these). og:url and og:image
          must be ABSOLUTE URLs: fill in the real domain before announcing. -->
@@ -37,6 +39,9 @@
         gap: 1.1rem;
         background: #050d09;
       }
+      [data-theme="light"] .app-loading {
+        background: #f3f6f1;
+      }
       .app-loading__ball {
         width: 42px;
         height: 42px;
@@ -44,6 +49,10 @@
         border: 3px solid rgba(238, 245, 240, 0.14);
         border-top-color: #2fbf71;
         animation: app-loading-spin 0.9s linear infinite;
+      }
+      [data-theme="light"] .app-loading__ball {
+        border-color: rgba(11, 26, 18, 0.12);
+        border-top-color: #168d4f;
       }
       .app-loading__text {
         margin: 0;

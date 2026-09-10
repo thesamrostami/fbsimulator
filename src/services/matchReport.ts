@@ -1,6 +1,7 @@
 import type { PlayedMatch } from '../data/matches'
 import { TEAMS } from '../data/teams'
-import type { MatchEvent, PenaltyKick, SimResult } from '../engine/types'
+import { isShotEvent, type MatchEvent, type PenaltyKick, type SimResult } from '../engine/types'
+import { passAccuracy, type MatchRatings } from './playerRatings'
 
 /**
  * Full match report derived from one simulation: the complete timeline
@@ -16,6 +17,7 @@ export const BIG_CHANCE_XG = 0.2
 const REPORT_TYPES = new Set<MatchEvent['type']>([
   'kickoff',
   'goal',
+  'penalty',
   'yellow-card',
   'red-card',
   'sub-window',
@@ -31,8 +33,7 @@ export type ReportEntry =
 export function reportEntries(sim: SimResult): ReportEntry[] {
   const entries: ReportEntry[] = []
   for (const event of sim.events) {
-    const bigChance =
-      (event.type === 'shot-saved' || event.type === 'shot-miss') && (event.xg ?? 0) >= BIG_CHANCE_XG
+    const bigChance = event.type !== 'goal' && isShotEvent(event) && (event.xg ?? 0) >= BIG_CHANCE_XG
     if (REPORT_TYPES.has(event.type) || bigChance) {
       // The shootout kicks slot in between "penalties" and "full-time".
       if (event.type === 'full-time' && sim.shootout) {
@@ -49,6 +50,8 @@ const EVENT_GLYPH: Partial<Record<MatchEvent['type'], string>> = {
   goal: '⚽',
   'shot-saved': '🧤',
   'shot-miss': '💨',
+  'shot-blocked': '🛡',
+  penalty: '⚠',
   'yellow-card': '🟨',
   'red-card': '🟥',
   'sub-window': '🔁',
@@ -57,7 +60,11 @@ const EVENT_GLYPH: Partial<Record<MatchEvent['type'], string>> = {
   'full-time': '⏱',
 }
 
-export function buildMatchReport(match: PlayedMatch, sim: SimResult): { entries: ReportEntry[]; text: string } {
+export function buildMatchReport(
+  match: PlayedMatch,
+  sim: SimResult,
+  ratings?: MatchRatings,
+): { entries: ReportEntry[]; text: string } {
   const home = TEAMS[match.home.teamId]
   const away = TEAMS[match.away.teamId]
   const entries = reportEntries(sim)
@@ -87,6 +94,21 @@ export function buildMatchReport(match: PlayedMatch, sim: SimResult): { entries:
         ` PK${entry.number} ${mark} [${k.side === 'home' ? home.shortName : away.shortName}] ${k.commentary} (${Math.round(k.chance * 100)}% odds${k.pressure ? ', must-score' : ''}) ${k.scoreAfter.home}–${k.scoreAfter.away}`,
       )
     }
+  }
+  const s = sim.stats
+  const pct = (side: 'home' | 'away') => passAccuracy(s[side]) ?? 0
+  lines.push(
+    '',
+    `STATS (${home.shortName} – ${away.shortName})`,
+    `Possession ${s.home.possession}% – ${s.away.possession}% · Shots ${s.home.shots} – ${s.away.shots} (on target ${s.home.onTarget} – ${s.away.onTarget}) · xG ${s.home.xg.toFixed(2)} – ${s.away.xg.toFixed(2)}`,
+    `Big chances ${s.home.bigChances} – ${s.away.bigChances} · Corners ${s.home.corners} – ${s.away.corners} · Fouls ${s.home.fouls} – ${s.away.fouls} · Progression success ${pct('home')}% – ${pct('away')}%`,
+    `Cards ${s.home.yellows}Y ${s.home.reds}R – ${s.away.yellows}Y ${s.away.reds}R`,
+  )
+  if (ratings?.motm) {
+    const m = ratings.motm
+    lines.push(
+      `Man of the match: ${m.name} (${m.side === 'home' ? home.shortName : away.shortName}, ${m.label}) rated ${m.rating.toFixed(1)}`,
+    )
   }
   lines.push('', `Seed ${sim.seed} — deterministic: this exact match can be replayed any time.`)
   return { entries, text: lines.join('\n') }

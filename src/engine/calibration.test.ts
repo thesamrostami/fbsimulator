@@ -58,5 +58,6 @@ describe(`calibration against the ${PLAYED_MATCHES.length} real results`, () => 
     }
 
     expect(failures.length).toBeLessThanOrEqual(MAX_FAILURES)
-  })
+    // 16 fixtures × 500 possession-level replays: heavier than the default budget.
+  }, 60000)
 })

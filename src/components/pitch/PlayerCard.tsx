@@ -23,7 +23,7 @@ export function PlayerCard({ player, accent }: { player: Player; accent: string 
       key={player.id}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-white/10 bg-night-2/60 p-5"
+      className="rounded-xl border border-ink/10 bg-night-2/60 p-5"
     >
       <div className="mb-3 flex items-baseline gap-3">
         <span className="font-display text-3xl font-black tabular-nums" style={{ color: accent }}>
@@ -47,7 +47,7 @@ export function PlayerCard({ player, accent }: { player: Player; accent: string 
           return (
             <div key={key} className="flex items-center gap-3">
               <span className="w-20 text-[11px] font-bold uppercase tracking-widest text-muted">{label}</span>
-              <div className="h-2.5 flex-1 overflow-hidden rounded-sm bg-white/5">
+              <div className="h-2.5 flex-1 overflow-hidden rounded-sm bg-ink/5">
                 <motion.div
                   className="h-full"
                   style={{ background: accent, borderRadius: '0 3px 3px 0' }}

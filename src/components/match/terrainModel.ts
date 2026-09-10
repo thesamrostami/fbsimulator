@@ -1,4 +1,4 @@
-import type { MatchEvent, MomentumTimelinePoint } from '../../engine/types'
+import { isShotEvent, type MatchEvent, type MomentumTimelinePoint } from '../../engine/types'
 
 /**
  * Builds the data for the 3D pitch-terrain: a football ground over which each
@@ -6,10 +6,10 @@ import type { MatchEvent, MomentumTimelinePoint } from '../../engine/types'
  * attacking (home attacks +X, away attacks −X). No three.js here so it stays
  * unit-testable.
  *
- * The engine doesn't record where on the pitch a shot happened, so each event
- * gets a deterministic pseudo-position in the shooting side's attacking third
- * (same event → same spot). That's an honest impression of the attack, not a
- * measured coordinate — the note lives on HowItWorksPage.
+ * Shots and penalties carry the engine's real pitch spot (event.spot, in the
+ * acting side's attacking frame); the terrain rises exactly there. Events
+ * without a spot (older data) fall back to a deterministic pseudo-position in
+ * the attacking third so the view never breaks.
  */
 export const PITCH = {
   /** World length, goal to goal (X). */
@@ -104,7 +104,13 @@ export function homeDir(minute: number): 1 | -1 {
   return period % 2 === 0 ? 1 : -1
 }
 
-/** Deterministic pitch spot for an event, biased to that side's attacking third. */
+/** The engine's recorded spot (attacking frame, 0-1) in world space; ends swap each period. */
+export function worldSpot(spot: { x: number; y: number }, side: 'home' | 'away', minute: number): { x: number; z: number } {
+  const dir = (side === 'home' ? 1 : -1) * homeDir(minute)
+  return { x: (spot.x - 0.5) * PITCH.len * dir, z: (spot.y - 0.5) * PITCH.wid * dir }
+}
+
+/** Fallback pitch spot for an event without one, biased to that side's attacking third. */
 function eventSpot(minute: number, playerId: string | undefined, side: 'home' | 'away', ownHalf = false): { x: number; z: number } {
   const rng = mulberry32(strHash(`${minute}-${playerId ?? 'x'}-${ownHalf ? 'd' : 'a'}`))
   const u1 = rng()
@@ -121,13 +127,11 @@ export function buildPitchModel(
   homeColor: string,
   awayColor: string,
 ): PitchModel {
-  const shots = events.filter(
-    (e) => e.side && typeof e.xg === 'number' && (e.type === 'goal' || e.type === 'shot-saved' || e.type === 'shot-miss'),
-  )
+  const shots = events.filter((e) => e.side && typeof e.xg === 'number' && isShotEvent(e))
   const bumps: Bump[] = shots.map((e) => {
     const side = e.side as 'home' | 'away'
     const isGoal = e.type === 'goal'
-    const spot = eventSpot(e.minute, e.player?.id, side)
+    const spot = e.spot ? worldSpot(e.spot, side, e.minute) : eventSpot(e.minute, e.player?.id, side)
     return {
       ...spot,
       height: ((e.xg as number) + (isGoal ? PITCH.goalXgBoost : 0)) * PITCH.heightScale,
@@ -142,7 +146,7 @@ export function buildPitchModel(
     .map((e) => {
       const side = e.side as 'home' | 'away'
       const isGoal = e.type === 'goal'
-      const spot = eventSpot(e.minute, e.player?.id, side, !isGoal)
+      const spot = e.spot ? worldSpot(e.spot, side, e.minute) : eventSpot(e.minute, e.player?.id, side, !isGoal)
       return {
         minute: e.minute,
         kind: isGoal ? ('goal' as const) : ('red' as const),

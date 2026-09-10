@@ -74,7 +74,7 @@ export function TeamFlag({ teamId, className = 'h-4', title }: TeamFlagProps) {
       <span
         role="img"
         aria-label={label}
-        className={`inline-flex aspect-[3/2] items-center justify-center rounded-[3px] bg-white/5 align-[-0.15em] text-[0.6em] font-bold text-muted ring-1 ring-inset ring-white/15 ${className}`}
+        className={`inline-flex aspect-[3/2] items-center justify-center rounded-[3px] bg-ink/5 align-[-0.15em] text-[0.6em] font-bold text-muted ring-1 ring-inset ring-ink/15 ${className}`}
       >
         ?
       </span>
@@ -89,7 +89,7 @@ export function TeamFlag({ teamId, className = 'h-4', title }: TeamFlagProps) {
     >
       <Flag className="block h-full w-auto" />
       {/* Ring painted above the flag so white fields don't bleed into dark surfaces. */}
-      <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[3px] ring-1 ring-inset ring-white/25" />
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[3px] ring-1 ring-inset ring-ink/25" />
     </span>
   )
 }

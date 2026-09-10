@@ -48,7 +48,7 @@ export function CompareRow({ label, pct, color, faded, delay, runs, delta, delta
   return (
     <div className="flex items-center gap-3" title={`${label}: ${pct}% of ${runs} replays`}>
       <span className="w-16 shrink-0 text-[11px] font-bold uppercase tracking-widest text-muted">{label}</span>
-      <div className="h-3.5 flex-1 rounded-sm bg-white/5">
+      <div className="h-3.5 flex-1 rounded-sm bg-ink/5">
         <motion.div
           className="h-full"
           style={{ background: color, opacity: faded ? 0.45 : 1, borderRadius: '0 4px 4px 0' }}
@@ -164,10 +164,22 @@ export function InsightPanel({ match, monteCarlo, why, home, away }: InsightPane
       <h3 className="mb-2 mt-6 text-[11px] font-bold uppercase tracking-widest text-muted">
         Why the odds moved
       </h3>
+      {why.tacticsChanges.length > 0 && (
+        <ul className="mb-2 space-y-1.5">
+          {why.tacticsChanges.map((change) => (
+            <li key={change.team.id} className="text-sm leading-relaxed text-floodlight/85">
+              <span style={{ color: change.team.color }}>{change.team.shortName}</span>{' '}
+              <span className="text-muted">play</span> {change.summary}
+              <span className="text-muted"> — instructions change how possessions unfold, not the ratings.</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {topShifts.length === 0 ? (
         <p className="text-sm leading-relaxed text-floodlight/85">
-          Your changes barely moved the phase ratings — the players you swapped rate about the same,
-          so the odds stay close to the real XI's.
+          {why.tacticsChanges.length > 0
+            ? 'The phase ratings are unchanged: the difference above is the instructions alone.'
+            : 'Your changes barely moved the phase ratings: the players you swapped rate about the same, so the odds stay close to the real XI.'}
         </p>
       ) : (
         <ul className="space-y-1.5">

@@ -3,19 +3,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { HeroBall } from '../components/brand/HeroBall'
 import { Wordmark } from '../components/brand/Wordmark'
 import { FOCUS_RING } from '../ui/theme'
+import { ThemeToggle } from '../ui/themeMode'
 
 export function IntroPage() {
   const navigate = useNavigate()
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-10 text-center">
+      <ThemeToggle className="absolute right-4 top-4 z-10" />
       {/* Floodlight beams sweeping gently */}
       <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(60% 45% at 20% -8%, rgba(238,245,240,0.10), transparent 60%), radial-gradient(60% 45% at 80% -8%, rgba(238,245,240,0.08), transparent 60%)',
+            'radial-gradient(60% 45% at 20% -8%, color-mix(in srgb, var(--color-brand-b) 12%, transparent), transparent 60%), radial-gradient(60% 45% at 80% -8%, color-mix(in srgb, var(--color-brand-a) 10%, transparent), transparent 60%)',
         }}
         animate={{ opacity: [0.7, 1, 0.7] }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
@@ -24,7 +26,7 @@ export function IntroPage() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
-        style={{ background: 'radial-gradient(80% 100% at 50% 120%, rgba(47,191,113,0.16), transparent 70%)' }}
+        style={{ background: 'radial-gradient(80% 100% at 50% 120%, color-mix(in srgb, var(--color-brand-a) 18%, transparent), transparent 70%)' }}
       />
 
       <motion.p
@@ -76,11 +78,11 @@ export function IntroPage() {
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, type: 'spring', stiffness: 220, damping: 22 }}
-        whileHover={{ scale: 1.05, boxShadow: '0 0 42px rgba(47,191,113,0.45)' }}
+        whileHover={{ scale: 1.05, boxShadow: '0 0 42px color-mix(in srgb, var(--color-brand-a) 45%, transparent)' }}
         whileTap={{ scale: 0.96 }}
         onClick={() => navigate('/bracket')}
         className={`mt-8 rounded-xl px-10 py-4 font-display text-lg font-black uppercase tracking-widest text-night ${FOCUS_RING}`}
-        style={{ background: 'linear-gradient(100deg, #2fbf71, #5aa9ff)' }}
+        style={{ background: 'linear-gradient(100deg, var(--color-brand-a), var(--color-brand-b))' }}
       >
         Enter the bracket ▸
       </motion.button>

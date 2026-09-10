@@ -6,8 +6,13 @@ import { FORMATIONS } from '../data/formations'
 import { PLAYER_RATINGS_META } from '../data/players'
 import { TEAM_STRENGTH_META } from '../data/teamStrength'
 import { CALIBRATION_META, CONVERSION_SAMPLE, SHOOTOUT_BASE_CONVERSION } from '../engine/empirical'
+import { POSSESSION } from '../engine/possession'
+import { PAUSE_MINUTES } from '../engine/simulate'
+import { TACTIC_DIALS } from '../engine/tactics'
+import { RATING_WEIGHTS } from '../services/playerRatings'
 import { MONTE_CARLO_RUNS } from '../services/simulation'
-import { BTN_SECONDARY, FOCUS_RING, LABEL } from '../ui/theme'
+import { MAX_HALFTIME_SUBS } from '../state/appState'
+import { BTN_PRIMARY, BTN_SECONDARY, LABEL } from '../ui/theme'
 
 function Section({ title, badge, children }: { title: string; badge?: ReactNode; children: ReactNode }) {
   return (
@@ -15,7 +20,7 @@ function Section({ title, badge, children }: { title: string; badge?: ReactNode;
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
-      className="rounded-2xl border border-white/10 bg-night-2/70 p-6"
+      className="rounded-2xl border border-ink/10 bg-night-2/70 p-6"
     >
       <h2 className="mb-3 flex flex-wrap items-center gap-3 font-display text-lg font-black uppercase tracking-widest text-floodlight">
         {title}
@@ -28,7 +33,7 @@ function Section({ title, badge, children }: { title: string; badge?: ReactNode;
 
 function Formula({ children }: { children: ReactNode }) {
   return (
-    <div className="scroll-area overflow-x-auto rounded-lg border border-white/10 bg-night p-4 font-mono text-xs leading-loose text-floodlight/90">
+    <div className="scroll-area overflow-x-auto rounded-lg border border-ink/10 bg-night p-4 font-mono text-xs leading-loose text-floodlight/90">
       {children}
     </div>
   )
@@ -48,9 +53,6 @@ export function HowItWorksPage() {
           </motion.h1>
           <p className="mt-1 text-sm text-muted">No black box: what's real, what's estimated, and the actual math.</p>
         </div>
-        <Link to="/bracket" className={`shrink-0 whitespace-nowrap px-4 py-2 ${BTN_SECONDARY}`}>
-          ◂ Bracket
-        </Link>
       </header>
 
       <div className="mx-auto max-w-3xl space-y-5">
@@ -156,41 +158,69 @@ export function HowItWorksPage() {
         </Section>
 
         <Section title="How a simulation runs">
+          <p>
+            The engine plays <strong>possessions</strong>, not dice rolls for shots. Every minute the side with
+            the ball (a possession tug-of-war between the two midfields, blended 50/50 with the fixture's{' '}
+            <em>real</em> possession split) builds an attack as a chain of contested steps on a real pitch —
+            and the ball's path, every shot's location and every card come out of that chain.
+          </p>
           <ol className="list-decimal space-y-2 pl-5">
             <li>
               <strong>Team strength.</strong> Your XI is aggregated into four phase ratings — attack, midfield,
               defence, goalkeeping — with each player weighted by the line he occupies. Anyone outside his
               natural line has all ratings multiplied down first (adjacent line ×0.75, two lines away ×0.6,
-              goalkeeper swaps ×0.4).
+              goalkeeper swaps ×0.4). Attack and defence are then anchored to the results-fitted baseline
+              (above).
             </li>
             <li>
-              <strong>Minute by minute (1–90).</strong> Each minute, possession is computed from the two
-              midfields and blended 50/50 with the <em>real</em> possession split from that fixture — so a
-              match Mexico really dominated 66/34 stays Mexico-tilted unless you gut their midfield.
+              <strong>Zones.</strong> The pitch is three thirds by three lanes. From the formation slots, each
+              player's influence over each zone is a Gaussian of distance to it, so a 4-2-4 really is thin in
+              the middle third and a back five really does crowd its own box. Per zone the engine knows who
+              is likely on the ball, who shoots, who defends, and how good each group is.
             </li>
             <li>
-              <strong>Chances.</strong> Each side rolls for a shot with probability proportional to its
-              possession and its attack-vs-defence edge. A shot gets a quality (xG) roll — mostly scrappy
-              half-chances, occasionally a golden one — scaled by the shooter's shooting rating.
+              <strong>Building an attack.</strong> A possession starts where the ball was won (or from a
+              restart). Out of the defensive third it must beat the opponent's press; through the middle it
+              must beat their midfield; from the final third it tries to break in — a through-ball, a
+              combination, a cross, a cut-back or a dribble — and shoot. Each step succeeds with a
+              probability set by the anchored attack/defence ratio (raised to a power that sums to the
+              same 1.8 the old per-minute model used, so the calibrated goal rates carry over) and nudged by
+              the two zone groups actually contesting it. A failed step is a <strong>turnover</strong>; a
+              turnover high up the pitch can become a <strong>fast break</strong> the other way.
             </li>
             <li>
-              <strong>Conversion.</strong> The chance converts with probability xG × a keeper factor: better
-              opposing goalkeeping pulls conversion down. Cards, momentum swings and red-card weakening run
-              alongside.
+              <strong>Shots and xG.</strong> The shot's location comes from the kind of entry that created
+              it; its expected goals come from a logistic model on <em>distance</em> and the{' '}
+              <em>visible goal angle</em> — the shape every public xG model shares (penalty spot ≈ 0.25,
+              six-yard line ≈ 0.5, 25 m out ≈ 0.05) — scaled for the situation (header, through on goal,
+              cut-back, fast break), the shooter's shooting rating and the attacking shape, and rescaled so the
+              mean chance matches real knockout football. The chance converts with probability xG × a keeper
+              factor; otherwise it is blocked, saved (a corner may follow) or off target. Assists and key
+              passes go to the man who played the last ball.
+            </li>
+            <li>
+              <strong>Set pieces and fouls.</strong> Corners produce aerial duels in the box; fouls come out
+              of the contests (the more aggressive the defenders covering the zone, the likelier), yellow and
+              red cards out of the fouls, direct free kicks from fouls in range and{' '}
+              <strong>penalties</strong> from fouls in the box, converted with the same odds as a shootout
+              kick. Cards, fouls, corners and penalties are all tuned to real knockout-match rates (see the
+              volumes below).
             </li>
             <li>
               <strong>Knockout rules.</strong> Level at 90' → extra time with fatigue (more chances, more
-              cards). Still level → penalty shootout: five kicks each then sudden death.
+              fouls). Still level → penalty shootout: five kicks each then sudden death.
             </li>
             <li>
               <strong>Monte Carlo.</strong> Your kick-off also replays the fixture{' '}
               {MONTE_CARLO_RUNS.toLocaleString('en-US')} times with derived seeds for the win-probability
-              breakdown. Same seed → identical match: every result is reproducible.
+              breakdown, in a background thread so the page never stalls. Same seed → identical match: every
+              result, every pass, is reproducible.
             </li>
           </ol>
           <p>
-            Every simulated event records the numbers it was rolled from — tap any event in the match
-            timeline to see them.
+            Every simulated event records the numbers it was rolled from — the move that led to it, where the
+            shot came from, the location xG and every multiplier — tap any event in the match timeline to
+            see them.
           </p>
         </Section>
 
@@ -200,28 +230,104 @@ export function HowItWorksPage() {
             <br />
             possession(min) = blend( mid_home² / (mid_home² + mid_away²), real_possession, 50/50 )
             <br />
-            P(shot per min) = 0.30 × timeFactor(min) × possession × (attack ÷ opp_defence)^1.8 × momentum
+            step success = base × (attack ÷ opp_defence)^power × (zone group ÷ opp zone group)^{POSSESSION.zonePower}{' '}
+            × instructions × √(timeFactor × momentum × fatigue)
+            <br />
+            &nbsp;&nbsp;build-out {POSSESSION.buildOut} (^{POSSESSION.buildOutPower}) · progression {POSSESSION.progress} (^
+            {POSSESSION.progressPower}, plus midfield ratio^{POSSESSION.midfieldPower}) · final-third entry {POSSESSION.entry} (^
+            {POSSESSION.entryPower})
             <br />
             timeFactor = empirical goal-minute factor (5' bins, mean 1 — football scores late in halves)
             <br />
-            chance quality xG = (0.02 + 0.40·u³) × (empirical xG/shot ÷ 0.12) × clamp(shooting ÷ 80, 0.6…1.3)
+            location xG = 1 ÷ (1 + e^−(−1.2 − 0.085·distance_m + 1.6·goal_angle_rad)) × situation × clamp((shooting ÷ 80)^0.6, 0.7…1.25) × shape × {POSSESSION.xgScale}
+            <br />
+            situations: header ×{POSSESSION.headerXg} · through on goal ×{POSSESSION.throughBallXg} · cut-back ×{POSSESSION.cutbackXg} · fast break ×
+            {POSSESSION.fastBreakXg} · free kick ×{POSSESSION.freeKickXg} · corner header ×{POSSESSION.cornerHeaderXg}
             <br />
             P(goal | shot) = xG × keeper_factor, keeper_factor = clamp(1 − (GK − 75) ÷ 150, 0.70…1.15)
             <br />
-            momentum: after a goal ×1.12 for 6 min; random swings ×1.18 for 7 min (2%/min)
+            not a goal: blocked {Math.round(POSSESSION.blockedShare * 100)}% (headers {Math.round(POSSESSION.headerBlockedShare * 100)}%), else on target per the
+            empirical share, else off; corners from blocks {Math.round(POSSESSION.cornerFromBlock * 100)}% and saves{' '}
+            {Math.round(POSSESSION.cornerFromSave * 100)}%
             <br />
-            cards: yellow 1.8%/min per side · red 0.09%/min · second yellow = red
+            fouls: {Math.round(POSSESSION.foulChance * 100)}% of defensive contests (× zone aggression ÷ 75 × instructions), in the box{' '}
+            {(POSSESSION.boxFoulChance * 100).toFixed(1)}% of entries → penalty
+            <br />
+            cards: yellow {Math.round(POSSESSION.yellowGivenFoul * 100)}% of fouls ({Math.round(POSSESSION.yellowGivenPenaltyFoul * 100)}% for a penalty foul) · straight red{' '}
+            {(POSSESSION.redGivenFoul * 100).toFixed(1)}% · a booked player draws a second yellow {Math.round(POSSESSION.secondYellowScale * 100)}% as often
+            <br />
+            fast break after a turnover in the opponent's half: {Math.round(POSSESSION.counterChance * 100)}% × instructions × (front pace ÷ their back-line pace)^0.7;
+            steps ×{POSSESSION.fastBreakStep}, xG ×{POSSESSION.fastBreakXg}
+            <br />
+            momentum: after a goal ×1.12 for 6 min; random swings ×1.18 for 7 min (2%/min)
             <br />
             red card: attack ×0.70, midfield ×0.75, defence ×0.85 (plus the lost player)
             <br />
-            extra time (91–120'): chance rates ×1.3, card risk ×1.6
+            extra time (91–120'): chance creation ×1.3, foul and card risk ×1.6
             <br />
             penalty kick: P = {SHOOTOUT_BASE_CONVERSION} + (shooting − 75) ÷ 260 − (keeper − 78) ÷ 320, clamped 42…92%
           </Formula>
           <p className="text-xs text-muted">
-            u is a uniform random roll in [0,1). All randomness comes from one seeded generator
-            (mulberry32), so a seed fully determines a match. Empirical constants are built offline by the
-            data pipeline and committed as versioned JSON.
+            All randomness comes from one seeded generator (mulberry32), so a seed fully determines a match.
+            Empirical constants are built offline by the data pipeline and committed as versioned JSON. The
+            possession constants are tuned so that, over the sixteen real fixtures, a match averages about 25
+            shots, 2.6 goals, 3.5 yellows, 0.12 reds, 24 fouls, 11 corners and a penalty every third game —
+            real knockout numbers — and that check runs as an automated test alongside the calibration
+            suite.
+          </p>
+        </Section>
+
+        <Section title="Instructions">
+          <p>
+            Beyond shape, each team takes three <strong>instructions</strong>. They never touch a player's
+            ratings — they change how possessions unfold, and every one is a trade-off. The real match is
+            replayed with the neutral setting; the editor shows the exact multipliers in play.
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            {TACTIC_DIALS.map((dial) => (
+              <li key={dial.key}>
+                <strong>{dial.label}.</strong>{' '}
+                {dial.options.map((o, i) => (
+                  <span key={o.value}>
+                    <em>{o.label}</em> — {o.blurb}
+                    {i < dial.options.length - 1 ? ' ' : ''}
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title="Manager mode">
+          <p>
+            The match stops at the whistle on {PAUSE_MINUTES[0]}' and, if you ask it to, at the substitution
+            windows on {PAUSE_MINUTES.slice(1).join("' and ")}'. At every stop you can change personnel, shape
+            or instructions for either side under real rules: <strong>{MAX_HALFTIME_SUBS} substitutions</strong> across
+            the whole match, a player who has come off cannot return, and a sent-off player plays no further
+            part. Before you confirm, the engine replays <em>the rest of this match</em> — same score, same
+            cards — {MONTE_CARLO_RUNS.toLocaleString('en-US')} times with and without your change, from the
+            same seeds, so the difference is your change alone. Nothing already played is ever re-rolled: the
+            frozen match continues on the same random stream, and a pause where nothing changes is
+            byte-identical to not pausing at all.
+          </p>
+          <p>
+            Every interactive match is kept as a small <strong>script</strong> — the seed, the kick-off
+            lineups and each confirmed change — which replays it exactly. That is what brings your result back
+            after a reload.
+          </p>
+        </Section>
+
+        <Section title="Player ratings">
+          <p>
+            The post-match ratings are a fixed formula over the engine's own per-player numbers, on the
+            familiar 4–10 scale, starting from {RATING_WEIGHTS.base.toFixed(1)}: +{RATING_WEIGHTS.goal} per goal, +
+            {RATING_WEIGHTS.assist} per assist, +{RATING_WEIGHTS.xg} per xG taken and +{RATING_WEIGHTS.xa} per xG created, +
+            {RATING_WEIGHTS.keyPass} per key pass, +{RATING_WEIGHTS.onTarget} per shot on target, +{RATING_WEIGHTS.passCompleted} per
+            progressive pass completed ({RATING_WEIGHTS.passMissed} when it fails), +{RATING_WEIGHTS.carry} per carry, +
+            {RATING_WEIGHTS.tackle} per defensive action, +{RATING_WEIGHTS.save} per save, {RATING_WEIGHTS.foul} per foul, {RATING_WEIGHTS.yellow} per
+            yellow, {RATING_WEIGHTS.red} for a red, +{RATING_WEIGHTS.cleanSheet} clean-sheet bonus for keepers and defenders, ±
+            {RATING_WEIGHTS.win} for the result. The Man of the Match is simply the top rating (ties go to goals, then
+            assists). Passes here are the progressive passes the possession engine plays, not every touch.
           </p>
         </Section>
 
@@ -236,7 +342,7 @@ export function HowItWorksPage() {
           <div className="scroll-area overflow-x-auto">
             <table className="w-full min-w-[34rem] border-collapse text-sm">
               <thead>
-                <tr className={`border-b border-white/10 text-left ${LABEL}`}>
+                <tr className={`border-b border-ink/10 text-left ${LABEL}`}>
                   <th className="py-2 pr-3 font-bold">Shape</th>
                   <th className="py-2 pr-3 font-bold">Attack</th>
                   <th className="py-2 pr-3 font-bold">Midfield / possession</th>
@@ -246,7 +352,7 @@ export function HowItWorksPage() {
               </thead>
               <tbody className="tabular-nums">
                 {Object.values(FORMATIONS).map((formation) => (
-                  <tr key={formation.name} className="border-b border-white/5" title={formation.blurb}>
+                  <tr key={formation.name} className="border-b border-ink/5" title={formation.blurb}>
                     <td className="py-1.5 pr-3 font-display font-black text-floodlight">{formation.name}</td>
                     <td className="py-1.5 pr-3">×{formation.modifiers.attack.toFixed(2)}</td>
                     <td className="py-1.5 pr-3">×{formation.modifiers.midfield.toFixed(2)}</td>
@@ -264,23 +370,25 @@ export function HowItWorksPage() {
           </p>
         </Section>
 
-        <Section title="The 3D territory portrait">
+        <Section title="The 3D pitch">
           <p>
-            On the match screen a live <strong>3D pitch</strong> hangs in view, driven by the same playhead.
-            Two translucent <strong>territory sheets</strong> in the teams' colours share the field, and the{' '}
-            <strong>line where they meet is the ground each side holds</strong>. A raised wave rides that line
-            and <strong>slides with momentum</strong> — when a team presses, its colour pushes across the
-            halfway line into the opponent's territory, then the tide turns. <strong>Sharp peaks</strong> stab
-            up where shots happen (taller for a better chance), a <strong>goal floods</strong> the spot in the
-            scorer's colour, and <strong>teams switch ends at half-time</strong>. Pins mark goals and red cards.
+            On the match screen a live <strong>3D pitch</strong> plays the same match the engine simulated,
+            driven by the same playhead. Every possession the engine plays is a chain of real touches with a
+            pitch coordinate — a build-up from the back, a switch through midfield, a cross or a through-ball,
+            the shot — and the ball travels exactly those points. The <strong>22 players</strong> hold their
+            formation shapes and move as blocks: the side in possession pushes up behind the ball, the other
+            drops and compacts in front of its goal, everyone drifts toward the ball's lane, and the man on the
+            ball stands on it. Shots fly at the goal and end the way the engine said they did — in the net,
+            in the keeper's hands, blocked or wide. Cards float over the players who earned them, and{' '}
+            <strong>teams switch ends at half-time</strong>. Hover or tap any player for his live numbers; the
+            shot-map overlay accumulates every attempt at its real spot, sized by xG.
           </p>
           <p>
-            <strong>One honest caveat.</strong> The engine doesn't simulate <em>where</em> on the pitch a shot
-            is taken, so the peaks don't pretend to. Each one's spot is a{' '}
-            <strong>deterministic pseudo-position</strong> — hashed from the event's minute and player and
-            biased toward that side's attacking third. The same shot always lands in the same place, but it's an{' '}
-            <em>impression</em> of the attack, not a recorded coordinate. The territory line and the peak
-            heights (possession tilt and chance quality) are real, engine-derived numbers.
+            <strong>What is and isn't measured.</strong> The ball's path, the shot locations and their xG are
+            the engine's own data. The off-ball player positions are a <em>rendering</em>: a formation shape
+            that responds to the ball, not a per-player tracking model. The alternative{' '}
+            <strong>territory</strong> view draws the same match as two coloured sheets — the line where they
+            meet is the possession tilt, peaks rise where shots happened.
           </p>
         </Section>
 
@@ -290,10 +398,11 @@ export function HowItWorksPage() {
             prediction service. International football's sample sizes are small (a national team plays
             ~15 matches a year, so even four years of results is a thin signal); player ratings remain
             editorial estimates until the FC 26 integration lands, and even then a video game's numbers are
-            one editorial view of ability; and the minute-level engine is a stylized simplification that
-            knows nothing about injuries, weather, referees or tactics beyond formation shapes. The
-            calibration suite checks that real winners win plausible shares across all 16 played matches —
-            that keeps the model honest, it does not make it an oracle.
+            one editorial view of ability; and the possession engine, for all its pitch coordinates, is a
+            stylized simplification — its zones and contests are a model of football, not tracking data, and
+            it knows nothing about injuries, weather, referees or fatigue beyond extra time. The calibration
+            suite checks that real winners win plausible shares across all 16 played matches and that the
+            match volumes sit in real ranges — that keeps the model honest, it does not make it an oracle.
           </p>
           <p>
             <strong>And to be explicit about what this site is:</strong> The Replay Cup is an independent
@@ -310,11 +419,7 @@ export function HowItWorksPage() {
           <Link to="/" className={`px-5 py-2.5 ${BTN_SECONDARY}`}>
             Intro
           </Link>
-          <Link
-            to="/bracket"
-            className={`rounded-lg px-5 py-2.5 font-display text-sm font-black uppercase tracking-widest text-night ${FOCUS_RING}`}
-            style={{ background: 'linear-gradient(100deg, #2fbf71, #5aa9ff)' }}
-          >
+          <Link to="/bracket" className={`px-5 py-2.5 text-sm ${BTN_PRIMARY}`}>
             To the bracket ▸
           </Link>
         </div>

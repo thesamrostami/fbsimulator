@@ -18,9 +18,17 @@ export type CommentaryTag =
   | 'star'
   | 'outOfPosition'
   | 'pressure'
+  | 'assisted'
+  | 'counter'
+  | 'header'
+  | 'setPiece'
+  | 'longRange'
+  | 'oneOnOne'
 
 export interface CommentaryContext {
   player?: string
+  /** The creator of the chance, when a pass or cross set it up. */
+  assist?: string
   team?: string
   opponent?: string
   /** Chance quality, rendered as e.g. "0.31". */
@@ -84,6 +92,22 @@ const POOLS = {
     t('Superstars settle knockout ties. {player} just proved it for {team}.', 'star'),
     t('Playing out of position and he scores anyway — {player}, remarkable.', 'outOfPosition'),
     t('The makeshift man delivers! {player}, in an unfamiliar role, scores for {team}!', 'outOfPosition'),
+    // How the chance was made.
+    t('{assist} picks the pass and {player} does the rest — GOAL for {team}!', 'assisted'),
+    t('Slipped in by {assist}, finished by {player}. {score}.', 'assisted'),
+    t('{assist} with the vision, {player} with the finish — {team} score!', 'assisted'),
+    t('{player} meets the {assist} delivery with a thumping header! GOAL!', 'header', 'assisted'),
+    t('Up goes {player} — a towering header from the {assist} cross, and it is in!', 'header', 'assisted'),
+    t('{player} glances the header home. {team} lead the way in the air.', 'header'),
+    t('On the break! {player} finishes a lightning counter for {team}!', 'counter'),
+    t('Turnover, three passes, GOAL — {player} punishes them on the counter.', 'counter'),
+    t('{assist} launches the break and {player} finishes it. Devastating speed from {team}.', 'counter', 'assisted'),
+    t('From the set piece! {player} converts and {team} celebrate a training-ground goal.', 'setPiece'),
+    t('A dead-ball delivery, a flick, and {player} turns it in! {score}.', 'setPiece'),
+    t('FROM DISTANCE! {player} lets fly from way out and it screams in!', 'longRange'),
+    t('{player} tries it from thirty yards… and it FLIES in! Unbelievable!', 'longRange'),
+    t('One on one, and {player} stays calm — slotted past the keeper. {score}.', 'oneOnOne'),
+    t('Through on goal, {player} rounds the keeper and rolls it in. {team} strike!', 'oneOnOne'),
   ],
   'shot-saved': [
     t('{player} forces a sprawling save from the {opponent} keeper.'),
@@ -98,6 +122,24 @@ const POOLS = {
     t('{player} tests the gloves from distance; held at the second attempt.'),
     t('Elite technique, elite save — {player} thwarted this time.', 'star'),
     t("Out of position but not out of ideas — {player}'s effort is kept out.", 'outOfPosition'),
+    t('{player} gets his head to the {assist} cross — straight at the keeper.', 'header', 'assisted'),
+    t('{player} rises to meet it, but heads straight at the keeper.', 'header'),
+    t('The counter ends with {player} shooting — and the keeper standing tall.', 'counter'),
+    t('From range, {player} — a comfortable catch.', 'longRange'),
+    t('One on one and {player} cannot beat him! A huge save.', 'oneOnOne'),
+    t('The corner is met by {player}, and tipped over!', 'setPiece'),
+  ],
+  'shot-blocked': [
+    t('{player} shoots — blocked! Bodies on the line for {opponent}.'),
+    t('A brave block denies {player}.'),
+    t('{player} pulls the trigger, but it cannons off a defender.'),
+    t('Charged down! {player} had the sight of goal but not the space.'),
+    t('{player} tries to pick his spot; a sliding block gets in the way.'),
+    t('Deflected wide off a defender — {player} will have to try again.'),
+    t('{opponent} throw themselves in front of it. {player} denied.'),
+    t('Blocked at source — {player} hits a wall of legs.'),
+    t('{player} shoots from distance — straight into a defender.', 'longRange'),
+    t('The header from {player} is cleared off the line!', 'header'),
   ],
   'shot-miss': [
     t('{player} drags it wide of the near post.'),
@@ -112,6 +154,30 @@ const POOLS = {
     t('{player} skies it from a promising position.'),
     t('The superstar is human after all — {player} misses the target.', 'star'),
     t('Asked to play a strange role, {player} shoots wide of the mark.', 'outOfPosition'),
+    t('{player} heads the {assist} cross over the bar.', 'header', 'assisted'),
+    t('{player} gets up well but heads it over.', 'header'),
+    t('The break is on… and {player} drags it wide! Wasted.', 'counter'),
+    t('{player} tries his luck from way out — into the stands.', 'longRange'),
+    t('Clean through, and {player} pulls it wide of the far post! How?!', 'oneOnOne'),
+    t('The delivery finds {player} — headed wide.', 'setPiece'),
+  ],
+  corner: [
+    t('Corner to {team}. {player} trots over to take it.'),
+    t('{team} win a corner; the big men come forward.'),
+    t('Out for a corner — {player} will swing it in.'),
+    t('A set piece for {team}: the box fills up.'),
+    t('Corner. {player} shapes to whip it toward the near post.'),
+    t('{team} keep the pressure on with a corner.'),
+    t('Deflected behind — another corner for {team}.'),
+    t('Flag kick to {team}. Everyone up.'),
+  ],
+  penalty: [
+    t('PENALTY to {team}! {player} brings down {opponent} in the box!'),
+    t('The referee points to the spot! {player} clatters into {opponent} — penalty, {team}.'),
+    t('Penalty! {opponent} is felled by {player} and the whistle goes immediately.'),
+    t('{player} gets it all wrong: a foul on {opponent}, and {team} have a penalty.'),
+    t('Spot kick! {opponent} was through, and {player} took him out.'),
+    t('A rash challenge from {player} on {opponent}, and it is a penalty to {team}.'),
   ],
   'yellow-card': [
     t('{player} goes into the book after a cynical foul.'),
@@ -230,6 +296,7 @@ export interface Commentator {
 function fill(template: string, ctx: CommentaryContext, minute?: number): string {
   return template
     .replace(/\{player\}/g, ctx.player ?? 'the forward')
+    .replace(/\{assist\}/g, ctx.assist ?? 'a team-mate')
     .replace(/\{team\}/g, ctx.team ?? 'the home side')
     .replace(/\{opponent\}/g, ctx.opponent ?? 'opposition')
     .replace(/\{xg\}/g, ctx.xg !== undefined ? ctx.xg.toFixed(2) : 'a sniff of')
@@ -304,6 +371,12 @@ export const ALL_TAGS: CommentaryTag[] = [
   'star',
   'outOfPosition',
   'pressure',
+  'assisted',
+  'counter',
+  'header',
+  'setPiece',
+  'longRange',
+  'oneOnOne',
 ]
 
 /** One-shot helper (fresh commentator) for callers outside a match loop. */

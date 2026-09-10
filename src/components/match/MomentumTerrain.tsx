@@ -3,6 +3,9 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { memo, useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import * as THREE from 'three'
 import type { MatchEvent, MomentumTimelinePoint } from '../../engine/types'
+import { useTheme } from '../../ui/themeState'
+import { Pitch, PitchLights } from './pitchScene'
+import { PITCH_LOOK } from './pitchTexture'
 import { buildPitchModel, momentumInterp, PITCH, sampleField, type PitchModel, type TerrainPin } from './terrainModel'
 
 /**
@@ -11,104 +14,13 @@ import { buildPitchModel, momentumInterp, PITCH, sampleField, type PitchModel, t
  * attacking (home → +X, away → −X), growing with the SAME match playhead. The
  * heightfield is recomputed on the CPU each frame from the revealed shots plus
  * a momentum swell; the only shader touch is a one-line discard so the pitch
- * shows through wherever the terrain is flat.
+ * shows through wherever the terrain is flat. Colours arrive as real hex
+ * values (the caller resolves the team variables for the active theme).
  */
-
-/** Procedural pitch texture: mown stripes + white markings, drawn once. */
-function makePitchTexture(): THREE.CanvasTexture {
-  const W = 1024
-  const H = Math.round((W * PITCH.wid) / PITCH.len)
-  const cv = document.createElement('canvas')
-  cv.width = W
-  cv.height = H
-  const g = cv.getContext('2d')!
-  // Mown stripes.
-  const stripes = 14
-  for (let i = 0; i < stripes; i++) {
-    g.fillStyle = i % 2 === 0 ? '#124d27' : '#0f4322'
-    g.fillRect((i * W) / stripes, 0, W / stripes + 1, H)
-  }
-  const m = W * 0.03 // margin
-  g.strokeStyle = 'rgba(233,240,234,0.82)'
-  g.lineWidth = Math.max(2, H * 0.007)
-  const line = (fn: () => void) => {
-    g.beginPath()
-    fn()
-    g.stroke()
-  }
-  // Boundary + halfway.
-  line(() => g.rect(m, m, W - 2 * m, H - 2 * m))
-  line(() => {
-    g.moveTo(W / 2, m)
-    g.lineTo(W / 2, H - m)
-  })
-  // Centre circle + spot.
-  line(() => g.arc(W / 2, H / 2, H * 0.13, 0, Math.PI * 2))
-  g.fillStyle = 'rgba(233,240,234,0.82)'
-  g.beginPath()
-  g.arc(W / 2, H / 2, H * 0.012, 0, Math.PI * 2)
-  g.fill()
-  // Boxes + spots + arcs, both ends.
-  const penW = W * 0.15
-  const penH = H * 0.6
-  const sixW = W * 0.06
-  const sixH = H * 0.3
-  for (const side of [-1, 1] as const) {
-    const goalX = side < 0 ? m : W - m
-    const dir = side < 0 ? 1 : -1
-    line(() => g.rect(goalX, (H - penH) / 2, dir * penW, penH))
-    line(() => g.rect(goalX, (H - sixH) / 2, dir * sixW, sixH))
-    const spotX = goalX + dir * penW * 0.72
-    g.beginPath()
-    g.arc(spotX, H / 2, H * 0.012, 0, Math.PI * 2)
-    g.fill()
-    // Penalty arc (the D).
-    const a0 = side < 0 ? -0.9 : Math.PI - 0.9
-    const a1 = side < 0 ? 0.9 : Math.PI + 0.9
-    line(() => g.arc(spotX, H / 2, H * 0.13, a0, a1))
-  }
-  const tex = new THREE.CanvasTexture(cv)
-  tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 8
-  return tex
-}
 
 function hexToLinear(hex: string): [number, number, number] {
   const c = new THREE.Color(hex)
   return [c.r, c.g, c.b]
-}
-
-function Pitch() {
-  const tex = useMemo(makePitchTexture, [])
-  useEffect(() => () => tex.dispose(), [tex])
-  const post = '#dfe8e2'
-  const goalW = PITCH.wid * 0.2
-  const goalH = 1.6
-  const r = 0.09
-  return (
-    <group>
-      {/* The ground. */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
-        <planeGeometry args={[PITCH.len, PITCH.wid]} />
-        <meshStandardMaterial map={tex} roughness={0.95} metalness={0} />
-      </mesh>
-      {/* Goal frames at each end. */}
-      {[-1, 1].map((side) => (
-        <group key={side} position={[(side * PITCH.len) / 2, 0, 0]}>
-          {[-1, 1].map((zs) => (
-            <mesh key={zs} position={[0, goalH / 2, (zs * goalW) / 2]}>
-              <cylinderGeometry args={[r, r, goalH, 8]} />
-              <meshStandardMaterial color={post} roughness={0.5} emissive={post} emissiveIntensity={0.15} />
-            </mesh>
-          ))}
-          <mesh position={[0, goalH, 0]} rotation-x={Math.PI / 2}>
-            <cylinderGeometry args={[r, r, goalW, 8]} />
-            <meshStandardMaterial color={post} roughness={0.5} emissive={post} emissiveIntensity={0.15} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  )
 }
 
 function Terrain({
@@ -322,10 +234,10 @@ const Pins = memo(function Pins({ pins, shownMinute }: { pins: TerrainPin[]; sho
                 textTransform: 'uppercase',
                 padding: '3px 8px',
                 borderRadius: 999,
-                color: '#eef5f0',
-                background: 'rgba(6,17,11,0.82)',
+                color: 'var(--color-floodlight)',
+                background: 'var(--color-night-2)',
                 border: `1px solid ${p.color}`,
-                boxShadow: `0 0 12px ${p.color}66`,
+                boxShadow: `0 0 12px color-mix(in srgb, ${p.color} 40%, transparent)`,
               }}
             >
               <span style={{ color: p.color }}>{p.kind === 'goal' ? '⚽' : '🟥'}</span>
@@ -357,15 +269,11 @@ const Scene = memo(function Scene({
   autoRotate: boolean
 }) {
   const goals = useMemo(() => model.pins.filter((p) => p.kind === 'goal'), [model])
+  const { theme } = useTheme()
   return (
     <>
-      <ambientLight intensity={0.42} />
-      <hemisphereLight args={['#e2ebff', '#0a1410', 0.5]} />
-      {/* Key light for ridge relief, plus a cool back-rim to lift the silhouette. */}
-      <directionalLight position={[13, 24, 10]} intensity={1.5} />
-      <directionalLight position={[-16, 9, -12]} intensity={0.55} color="#8aa2ff" />
-      <directionalLight position={[0, 6, -18]} intensity={0.32} color="#c9d6ff" />
-      <Pitch />
+      <PitchLights />
+      <Pitch look={PITCH_LOOK[theme]} />
       <Terrain model={model} homeColor={homeColor} awayColor={awayColor} minuteRef={minuteRef} growMin={growMin} />
       <GoalFloods goals={goals} minuteRef={minuteRef} reducedMotion={reducedMotion} />
       <Pins pins={model.pins} shownMinute={shownMinute} />

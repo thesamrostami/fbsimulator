@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
         <button
           onClick={() => window.location.assign('/')}
           className="mt-6 rounded-xl px-8 py-3 font-display text-base font-black uppercase tracking-widest text-night"
-          style={{ background: 'linear-gradient(100deg, #2fbf71, #5aa9ff)' }}
+          style={{ background: 'linear-gradient(100deg, var(--color-brand-a), var(--color-brand-b))' }}
         >
           Back to kick-off
         </button>

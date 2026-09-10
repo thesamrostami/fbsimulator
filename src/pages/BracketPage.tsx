@@ -1,11 +1,10 @@
 import { motion } from 'framer-motion'
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Wordmark } from '../components/brand/Wordmark'
+import { useNavigate } from 'react-router-dom'
 import { TeamFlag } from '../components/ui/TeamFlag'
 import { BRACKET_ROUNDS, MATCHES, type MatchDef, type PlayedMatch } from '../data/matches'
-import { TEAMS, type TeamInfo } from '../data/teams'
-import { BTN_SECONDARY, FOCUS_RING } from '../ui/theme'
+import { TEAMS, tint, type TeamInfo } from '../data/teams'
+import { FOCUS_RING } from '../ui/theme'
 import { useScrollFade } from '../ui/useScrollFade'
 
 /** Seconds between each round's entrance. */
@@ -47,16 +46,16 @@ function ThirdPlaceCard({ match, delay }: { match: MatchDef; delay: number }) {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay, type: 'spring', stiffness: 240, damping: 24 }}
-        whileHover={{ scale: 1.04, boxShadow: `0 0 0 1px ${winnerColor}88, 0 0 20px ${winnerColor}44` }}
+        whileHover={{ scale: 1.04, boxShadow: `0 0 0 1px ${tint(winnerColor, 0.55)}, 0 0 20px ${tint(winnerColor, 0.28)}` }}
         whileTap={{ scale: 0.97 }}
         onClick={() => navigate(`/match/${match.id}`)}
-        className={`w-full cursor-pointer rounded-lg border border-white/12 bg-night-2/70 px-2.5 py-2 text-left shadow-md shadow-black/30 backdrop-blur-sm transition-colors hover:border-white/30 ${FOCUS_RING}`}
+        className={`w-full cursor-pointer rounded-lg border border-ink/12 bg-night-2/70 px-2.5 py-2 text-left shadow-md shadow-shade/30 backdrop-blur-sm transition-colors hover:border-ink/30 ${FOCUS_RING}`}
         aria-label={`Replay ${home.name} vs ${away.name} — third-place play-off`}
       >
         <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-muted">
           <span>3rd place · {matchDateLabel(match.date)}</span>
           {match.real.decidedBy && (
-            <span className="rounded border border-card-yellow/50 bg-card-yellow/10 px-1 text-card-yellow">
+            <span className="rounded border border-gold/50 bg-gold/10 px-1 text-gold">
               {match.real.decidedBy}
             </span>
           )}
@@ -76,7 +75,7 @@ function ThirdPlaceCard({ match, delay }: { match: MatchDef; delay: number }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: 'spring', stiffness: 240, damping: 24 }}
-      className="w-full rounded-lg border border-dashed border-white/10 bg-night-2/30 px-2.5 py-2 opacity-70"
+      className="w-full rounded-lg border border-dashed border-ink/10 bg-night-2/30 px-2.5 py-2 opacity-70"
       aria-label={`Third-place play-off: ${home?.name ?? 'TBD'} vs ${away?.name ?? 'TBD'} — not played yet`}
     >
       <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-muted">
@@ -139,17 +138,17 @@ function PlayedCard({ match, delay }: { match: PlayedMatch; delay: number }) {
       initial={{ opacity: 0, x: -26, scale: 0.94 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ delay, type: 'spring', stiffness: 240, damping: 24 }}
-      whileHover={{ scale: 1.045, boxShadow: `0 0 0 1px ${winnerColor}88, 0 0 26px ${winnerColor}55` }}
+      whileHover={{ scale: 1.045, boxShadow: `0 0 0 1px ${tint(winnerColor, 0.55)}, 0 0 26px ${tint(winnerColor, 0.33)}` }}
       whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/match/${match.id}`)}
-      className={`w-full cursor-pointer rounded-xl border border-white/12 bg-night-2/85 px-3 py-2.5 text-left shadow-lg shadow-black/40 backdrop-blur-sm transition-colors hover:border-white/30 ${FOCUS_RING}`}
+      className={`w-full cursor-pointer rounded-xl border border-ink/12 bg-night-2/85 px-3 py-2.5 text-left shadow-lg shadow-shade/40 backdrop-blur-sm transition-colors hover:border-ink/30 ${FOCUS_RING}`}
       aria-label={`Replay ${home.name} vs ${away.name}`}
     >
       <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted">
         <span>{matchDateLabel(match.date)}</span>
         <span className="flex gap-1">
           {match.real.decidedBy && (
-            <span className="rounded border border-card-yellow/50 bg-card-yellow/10 px-1 py-0.5 text-card-yellow">
+            <span className="rounded border border-gold/50 bg-gold/10 px-1 py-0.5 text-gold">
               {match.real.decidedBy}
             </span>
           )}
@@ -160,7 +159,7 @@ function PlayedCard({ match, delay }: { match: PlayedMatch; delay: number }) {
         <TeamRow team={away} score={match.real.score.away} isWinner={winner === 'away'} />
       </div>
       {match.type === 'final' && (
-        <div className="mt-2 flex items-center gap-1.5 border-t border-card-yellow/25 pt-1.5 text-[10px] font-black uppercase tracking-widest text-card-yellow">
+        <div className="mt-2 flex items-center gap-1.5 border-t border-gold/25 pt-1.5 text-[10px] font-black uppercase tracking-widest text-gold">
           <span aria-hidden="true">🏆</span>
           <span className="min-w-0 flex-1 truncate">{TEAMS[match[winner].teamId].name} — Champions</span>
         </div>
@@ -177,7 +176,7 @@ function LockedCard({ match, delay }: { match: MatchDef & { played: false }; del
       initial={{ opacity: 0, x: -26, scale: 0.94 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ delay, type: 'spring', stiffness: 240, damping: 24 }}
-      className="w-full rounded-xl border border-dashed border-white/10 bg-night-2/40 px-3 py-2.5 opacity-60"
+      className="w-full rounded-xl border border-dashed border-ink/10 bg-night-2/40 px-3 py-2.5 opacity-60"
       aria-label={`${home?.name ?? 'TBD'} vs ${away?.name ?? 'TBD'} — not played yet`}
     >
       <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted">
@@ -200,7 +199,7 @@ function LockedCard({ match, delay }: { match: MatchDef & { played: false }; del
  * down to the third-place node (sitting near the bottom of the final column).
  */
 function Connector({ delay, thirdPlaceTails = false }: { delay: number; thirdPlaceTails?: boolean }) {
-  const stroke = 'rgba(238,245,240,0.28)'
+  const stroke = 'color-mix(in srgb, var(--color-ink) 28%, transparent)'
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" aria-hidden="true">
       {['M 0 25 L 50 25 L 50 50', 'M 0 75 L 50 75 L 50 50', 'M 50 50 L 100 50'].map((d, i) => (
@@ -269,15 +268,8 @@ export function BracketPage() {
 
   return (
     <main className="min-h-screen px-4 pb-6">
-      <header className="mx-auto flex max-w-6xl flex-col gap-3 pb-6 pt-8 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mx-auto flex max-w-6xl flex-col gap-3 pb-6 pt-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="shrink-0"
-          >
-            <Wordmark compact />
-          </motion.div>
           <div>
             <motion.h1
               initial={{ opacity: 0, y: -12 }}
@@ -295,14 +287,6 @@ export function BracketPage() {
               Tap any finished match to change its history.
             </motion.p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/how-it-works" className={`whitespace-nowrap px-4 py-2 ${BTN_SECONDARY}`}>
-            How it works
-          </Link>
-          <Link to="/" className={`whitespace-nowrap px-4 py-2 ${BTN_SECONDARY}`}>
-            ◂ Intro
-          </Link>
         </div>
       </header>
 

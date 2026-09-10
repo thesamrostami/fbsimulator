@@ -8,6 +8,9 @@ const ICONS: Record<MatchEventType, string> = {
   goal: '⚽',
   'shot-saved': '🧤',
   'shot-miss': '💨',
+  'shot-blocked': '🛡️',
+  corner: '🚩',
+  penalty: '⚠️',
   'yellow-card': '🟨',
   'red-card': '🟥',
   momentum: '⚡',
@@ -55,7 +58,7 @@ export function EventCard({ event, homeShort, awayShort }: EventCardProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-1.5 overflow-hidden border-t border-white/10 pt-1.5 text-xs leading-relaxed text-muted"
+              className="mt-1.5 overflow-hidden border-t border-ink/10 pt-1.5 text-xs leading-relaxed text-muted"
             >
               {event.reasoning}
             </motion.p>
@@ -74,7 +77,7 @@ export function EventCard({ event, homeShort, awayShort }: EventCardProps) {
   )
 
   const shared = `flex items-start gap-3 rounded-lg border bg-night-2/80 px-3 py-2.5 ${
-    major ? 'border-white/25' : 'border-white/10'
+    major ? 'border-ink/25' : 'border-ink/10'
   }`
   const style = team ? { borderLeft: `3px solid ${team.color}` } : undefined
   const motionProps = {
@@ -99,7 +102,7 @@ export function EventCard({ event, homeShort, awayShort }: EventCardProps) {
       onClick={() => setExpanded((e) => !e)}
       aria-expanded={expanded}
       title={expanded ? 'Hide the numbers behind this event' : 'Show the numbers behind this event'}
-      className={`${shared} w-full cursor-pointer text-left transition-colors hover:border-white/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-card-yellow/70`}
+      className={`${shared} w-full cursor-pointer text-left transition-colors hover:border-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold/70`}
       style={style}
     >
       {body}

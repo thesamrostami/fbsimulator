@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildRealSheet, MATCHES, type PlayedMatch } from '../data/matches'
+import { isShotEvent } from '../engine/types'
 import { simulateMatch } from '../engine/simulate'
 import { BIG_CHANCE_XG, buildMatchReport, reportEntries } from './matchReport'
 
@@ -30,7 +31,7 @@ describe('match report', () => {
     const simGoals = sim.events.filter((e) => e.type === 'goal').length
     expect(events.filter((e) => e.type === 'goal')).toHaveLength(simGoals)
     for (const e of events) {
-      if (e.type === 'shot-saved' || e.type === 'shot-miss') {
+      if (e.type !== 'goal' && isShotEvent(e)) {
         expect(e.xg ?? 0).toBeGreaterThanOrEqual(BIG_CHANCE_XG)
       }
     }

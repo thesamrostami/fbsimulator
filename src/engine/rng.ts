@@ -8,6 +8,10 @@ export interface Rng {
   pick: <T>(items: readonly T[]) => T
   /** Weighted pick; weights must be non-negative and not all zero. */
   weightedPick: <T>(items: readonly T[], weight: (item: T) => number) => T
+  /** Index into a precomputed non-negative weight array (uniform if all zero). One draw. */
+  weightedIndex: (weights: ArrayLike<number>) => number
+  /** Standard normal draw (Box-Muller). Two draws. */
+  gaussian: () => number
 }
 
 export function createRng(seed: number): Rng {
@@ -25,6 +29,24 @@ export function createRng(seed: number): Rng {
     pick: (items) => {
       if (items.length === 0) throw new Error('pick from empty array')
       return items[Math.floor(next() * items.length)]
+    },
+    weightedIndex: (weights) => {
+      const n = weights.length
+      if (n === 0) throw new Error('weightedIndex over empty weights')
+      let total = 0
+      for (let i = 0; i < n; i++) total += weights[i]
+      if (total <= 0) return Math.floor(next() * n)
+      let roll = next() * total
+      for (let i = 0; i < n; i++) {
+        roll -= weights[i]
+        if (roll <= 0) return i
+      }
+      return n - 1
+    },
+    gaussian: () => {
+      const u = Math.max(next(), 1e-12)
+      const v = next()
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
     },
     weightedPick: (items, weight) => {
       if (items.length === 0) throw new Error('weightedPick from empty array')

@@ -1,6 +1,7 @@
 import type { PlayedMatch } from '../data/matches'
 import { TEAMS, type TeamInfo } from '../data/teams'
 import type { MatchEvent, MonteCarloResult, SimResult } from '../engine/types'
+import type { PlayerRating } from './playerRatings'
 
 export interface KeyDifference {
   /** Emoji icon; ignored when teamId is set (the UI renders that team's flag). */
@@ -154,6 +155,7 @@ export function shareSummary(
   sim: SimResult,
   monteCarlo: MonteCarloResult,
   topScoreline: string,
+  motm?: PlayerRating | null,
 ): string {
   const home = TEAMS[match.home.teamId]
   const away = TEAMS[match.away.teamId]
@@ -163,6 +165,8 @@ export function shareSummary(
     `THE REPLAY CUP · ${match.stage} replay`,
     `${home.name} ${sim.finalScore.home}–${sim.finalScore.away} ${away.name}${aet}${pens} (my simulation)`,
     `Reality: ${home.name} ${realScoreText(match)} ${away.name}`,
+    `xG ${sim.stats.home.xg.toFixed(2)}–${sim.stats.away.xg.toFixed(2)} · shots ${sim.stats.home.shots}–${sim.stats.away.shots}`,
+    ...(motm ? [`Man of the match: ${motm.name} (${motm.side === 'home' ? home.shortName : away.shortName}) ${motm.rating.toFixed(1)}`] : []),
     `1,000 replays: ${home.shortName} ${monteCarlo.homeWinPct}%${monteCarlo.extraTimePct === undefined ? ` · Draw ${monteCarlo.drawPct}%` : ''} · ${away.shortName} ${monteCarlo.awayWinPct}%`,
     `Most common scoreline: ${topScoreline}`,
   ].join('\n')

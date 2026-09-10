@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMemo, useReducer } from 'react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -133,5 +133,67 @@ describe('LineupEditor half-time mode', () => {
     // Formation-only change: still one personnel change.
     await user.click(screen.getByRole('radio', { name: /4-4-2/ }))
     expect(screen.getByTestId('subs-counter').textContent).toBe('1 / 5')
+  })
+})
+
+describe('LineupEditor instructions', () => {
+  it('offers the three dials, starts neutral, and applies a change to the selected side only', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const panel = within(screen.getByTestId('tactics'))
+    for (const dial of ['Mentality', 'Pressing', 'Width']) {
+      expect(panel.getByRole('radiogroup', { name: dial })).toBeDefined()
+    }
+    expect(panel.getByRole('radio', { name: 'Balanced' }).getAttribute('aria-checked')).toBe('true')
+    expect(panel.getByText(/as the real match was played/i)).toBeDefined()
+
+    await user.click(panel.getByRole('radio', { name: 'High press' }))
+    expect(panel.getByRole('radio', { name: 'High press' }).getAttribute('aria-checked')).toBe('true')
+    expect(panel.getByText(/effects? in play/i)).toBeDefined()
+    expect(panel.getByText(/press turnovers/)).toBeDefined()
+
+    // The other side keeps its own, still-neutral instructions.
+    await user.click(screen.getByRole('tab', { name: /England/i }))
+    expect(within(screen.getByTestId('tactics')).getByRole('radio', { name: 'Mid' }).getAttribute('aria-checked')).toBe('true')
+  })
+})
+
+describe('LineupEditor drag-and-drop', () => {
+  it('swaps a bench player onto a starter by dragging with a mouse', () => {
+    render(<Harness />)
+    const pitch = () => within(screen.getByTestId('pitch'))
+    const bench = () => within(screen.getByTestId('bench'))
+    const from = bench().getByText('Vargas').closest('button')!
+    const to = pitch().getByText('Jimenez').closest('button')!
+
+    // jsdom has no layout: point the hit test at the drop target ourselves.
+    const original = document.elementFromPoint
+    document.elementFromPoint = () => to
+    try {
+      fireEvent.pointerDown(from, { button: 0, pointerId: 1, pointerType: 'mouse', clientX: 10, clientY: 10 })
+      fireEvent.pointerMove(from, { pointerId: 1, pointerType: 'mouse', clientX: 40, clientY: 40 })
+      // The ghost follows the pointer; the target is highlighted.
+      expect(to.className).toMatch(/border-floodlight/)
+      fireEvent.pointerUp(from, { pointerId: 1, pointerType: 'mouse', clientX: 40, clientY: 40 })
+    } finally {
+      document.elementFromPoint = original
+    }
+
+    expect(pitch().getByText('Vargas')).toBeDefined()
+    expect(bench().getByText('Jimenez')).toBeDefined()
+    // The click the browser fires after a drag must not start a tap-to-swap.
+    fireEvent.click(pitch().getByText('Vargas').closest('button')!)
+    expect(pitch().getByText('Vargas').closest('button')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('leaves a short press alone: below the threshold it is a tap', () => {
+    render(<Harness />)
+    const pitch = within(screen.getByTestId('pitch'))
+    const chip = pitch.getByText('Jimenez').closest('button')!
+    fireEvent.pointerDown(chip, { button: 0, pointerId: 2, pointerType: 'mouse', clientX: 10, clientY: 10 })
+    fireEvent.pointerMove(chip, { pointerId: 2, pointerType: 'mouse', clientX: 12, clientY: 11 })
+    fireEvent.pointerUp(chip, { pointerId: 2, pointerType: 'mouse', clientX: 12, clientY: 11 })
+    fireEvent.click(chip)
+    expect(chip.getAttribute('aria-pressed')).toBe('true')
   })
 })

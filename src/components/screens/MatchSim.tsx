@@ -1,38 +1,47 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PlayedMatch } from '../../data/matches'
 import type { TeamInfo } from '../../data/teams'
-import { HALFTIME_MINUTE, type HalftimeState } from '../../engine/simulate'
-import type { MatchEvent, MomentumTimelinePoint, SimResult } from '../../engine/types'
+import type { HalftimeState } from '../../engine/simulate'
+import { isShotEvent, type MatchEvent, type SimResult } from '../../engine/types'
+import { nextPauseAfter, type MatchScript } from '../../services/matchScript'
 import type { LineupState, SideKey } from '../../state/appState'
 import { EventCard } from '../match/EventCard'
 import { GoalCelebration } from '../match/GoalCelebration'
-import { HalftimeBreak } from '../match/HalftimeBreak'
+import { MatchStage } from '../match/MatchStage'
+import { PauseBreak } from '../match/PauseBreak'
 import { PenaltyShootout } from '../match/PenaltyShootout'
 import { XgRaceChart } from '../match/XgRaceChart'
 import { TeamFlag } from '../ui/TeamFlag'
 import { FOCUS_RING } from '../../ui/theme'
 import { useScrollFade } from '../../ui/useScrollFade'
 
-// three.js is heavy; keep it out of the main chunk so the 2D views stay light.
-const MomentumTerrain = lazy(() =>
-  import('../match/MomentumTerrain').then((m) => ({ default: m.MomentumTerrain })),
-)
-
 interface MatchSimProps {
   match: PlayedMatch
-  /** The live match, played to 45' at kickoff. Its arrays grow in place at resume. */
-  firstHalf: HalftimeState
-  /** The full result — null until the second half has been kicked off. */
+  /** The live match, frozen at `pausedAt`. Its arrays grow in place at every resume. */
+  live: HalftimeState
+  /** The minute the live handle is frozen at (45, 60 or 75); bumps on every resume. */
+  pausedAt: number
+  /** Kick-off lineups plus every confirmed change so far. */
+  script: MatchScript
+  /** The full result — null until the match has been played out. */
   sim: SimResult | null
-  /** The lineups that started the match: the half-time editor's baseline. */
-  lineups: Record<SideKey, LineupState>
   home: TeamInfo
   away: TeamInfo
   resuming: boolean
-  onResume: (lineups: Record<SideKey, LineupState>, edited: boolean) => void
+  /** Play on: to the next window (`until`) or to the end (null). */
+  onResume: (lineups: Record<SideKey, LineupState>, edited: boolean, until: number | null) => void
   onDone: () => void
+}
+
+const WINDOWS_KEY = 'replay-cup-sub-windows'
+
+function readWindowsPreference(): boolean {
+  try {
+    return window.localStorage.getItem(WINDOWS_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 /** Playback pace: match minutes per real second at 1x. 90' in 30s. */
@@ -59,67 +68,7 @@ function AnimatedDigit({ value, color }: { value: number; color: string }) {
   )
 }
 
-/** The floating holographic pitch-terrain stage — active by default. */
-function TerrainStage({
-  momentumTimeline,
-  events,
-  minute,
-  duration,
-  home,
-  away,
-  reducedMotion,
-}: {
-  momentumTimeline: MomentumTimelinePoint[]
-  events: MatchEvent[]
-  minute: number
-  duration: number
-  home: TeamInfo
-  away: TeamInfo
-  reducedMotion: boolean
-}) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl"
-      style={{
-        background:
-          'radial-gradient(120% 100% at 50% 0%, rgba(90,169,255,0.08), rgba(47,191,113,0.05) 45%, rgba(6,17,11,0) 72%)',
-      }}
-    >
-      <div className="flex items-center gap-2 px-5 pt-4">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-muted">Attacking terrain</span>
-        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-floodlight/70">
-          3D
-        </span>
-      </div>
-      <div className="h-[26rem] w-full sm:h-[32rem]">
-        <Suspense fallback={<div className="grid h-full place-items-center text-xs text-muted">Loading pitch…</div>}>
-          <MomentumTerrain
-            momentumTimeline={momentumTimeline}
-            events={events}
-            minute={minute}
-            homeColor={home.color}
-            awayColor={away.color}
-            homeName={home.shortName}
-            awayName={away.shortName}
-            duration={duration}
-            reducedMotion={reducedMotion}
-          />
-        </Suspense>
-      </div>
-      <p className="px-5 pb-4 text-[11px] leading-snug text-muted">
-        Drag to orbit, scroll to zoom. Two colored sheets share the pitch; the line where they meet is the
-        territory the teams push back and forth, sharp peaks pop where shots happen, and a goal floods the spot.
-        Teams switch ends at half-time. Shot spots are a deterministic impression, not recorded positions —{' '}
-        <Link to="/how-it-works" className="underline underline-offset-2 hover:text-floodlight">
-          how it works
-        </Link>
-        .
-      </p>
-    </div>
-  )
-}
-
-export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming, onResume, onDone }: MatchSimProps) {
+export function MatchSim({ match, live, pausedAt, script, sim, home, away, resuming, onResume, onDone }: MatchSimProps) {
   const duration = sim?.wentToExtraTime ? 120 : 90
   const [minute, setMinute] = useState(0)
   const [playing, setPlaying] = useState(true)
@@ -127,6 +76,20 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
   const [celebration, setCelebration] = useState<MatchEvent | null>(null)
   const [atBreak, setAtBreak] = useState(false)
   const celebratedCount = useRef(0)
+
+  // Manager mode: stop again at the substitution windows (60', 75'). Off by
+  // default — a replay should flow — and remembered once switched on.
+  const [stopAtWindows, setStopAtWindowsState] = useState(() => typeof window !== 'undefined' && readWindowsPreference())
+  const setStopAtWindows = (value: boolean) => {
+    setStopAtWindowsState(value)
+    try {
+      window.localStorage.setItem(WINDOWS_KEY, value ? '1' : '0')
+    } catch {
+      // Not persisted; still applies to this match.
+    }
+  }
+  const resumeFromPause = (lineups: Record<SideKey, LineupState>, edited: boolean) =>
+    onResume(lineups, edited, stopAtWindows ? nextPauseAfter(pausedAt) : null)
 
   // Prefer-reduced-motion: the 3D scene's flood/pulse are frozen (not the 2D
   // default), so the feature stays reachable without violating the preference.
@@ -141,34 +104,42 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // The engine grows the first half's arrays in place at resume, so sim.events
-  // IS firstHalf.events. Copy once when the second half lands to give memos
-  // (and the xG chart's y-scale) a fresh identity — the copy keeps every
-  // element and its order, so the feed appends from 46' instead of resetting.
-  const events = useMemo(() => (sim ? [...sim.events] : firstHalf.events), [sim, firstHalf])
-  const xgTimeline = useMemo(() => (sim ? [...sim.xgTimeline] : firstHalf.xgTimeline), [sim, firstHalf])
-  const momentumTimeline = useMemo(
-    () => (sim ? [...sim.momentumTimeline] : firstHalf.momentumTimeline),
-    [sim, firstHalf],
-  )
+  // The engine grows the live handle's arrays in place at every resume, so
+  // sim.events IS live.events. Copy whenever the frozen minute moves (or the
+  // result lands) to give memos (and the xG chart's y-scale) a fresh identity —
+  // the copy keeps every element and its order, so the feed appends instead
+  // of resetting.
+  // pausedAt is the change signal for the in-place arrays, hence one memo keyed on it.
+  const timeline = useMemo(() => {
+    const source = sim ?? live
+    return {
+      events: [...source.events],
+      xgTimeline: [...source.xgTimeline],
+      momentumTimeline: [...source.momentumTimeline],
+      sequences: [...source.sequences],
+      lineupLog: [...source.lineupLog],
+      pausedAt,
+    }
+  }, [sim, live, pausedAt])
+  const { events, xgTimeline, momentumTimeline, sequences, lineupLog } = timeline
 
   const finished = sim !== null && minute >= duration
   const showShootout = finished && sim?.shootout !== undefined
-  // With no second half yet, the playhead can't pass the whistle.
-  const cap = sim ? duration : HALFTIME_MINUTE
+  // Until the match is played out, the playhead can't pass the frozen minute.
+  const cap = sim ? duration : pausedAt
 
-  // Reaching 45' with no second half: stop and open the break.
+  // Reaching the frozen minute with nothing beyond it: stop and open the pause.
   useEffect(() => {
-    if (!sim && !atBreak && minute >= HALFTIME_MINUTE) setAtBreak(true)
-  }, [sim, atBreak, minute])
+    if (!sim && !atBreak && minute >= pausedAt) setAtBreak(true)
+  }, [sim, atBreak, minute, pausedAt])
 
-  // The second half arrives (change confirmed or declined): play on from 45'.
+  // Play on when the match moves past the pause (a later freeze, or the result).
   useEffect(() => {
-    if (sim && atBreak) {
+    if (atBreak && (sim || pausedAt > minute)) {
       setAtBreak(false)
       setPlaying(true)
     }
-  }, [sim, atBreak])
+  }, [sim, atBreak, pausedAt, minute])
 
   useEffect(() => {
     if (!playing || finished || atBreak) return
@@ -227,10 +198,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
     return () => clearTimeout(timer)
   }, [celebration])
 
-  const shotsFor = (side: 'home' | 'away') =>
-    visibleEvents.filter(
-      (e) => e.side === side && (e.type === 'goal' || e.type === 'shot-saved' || e.type === 'shot-miss'),
-    ).length
+  const shotsFor = (side: 'home' | 'away') => visibleEvents.filter((e) => e.side === side && isShotEvent(e)).length
   const xgNow = xgTimeline[Math.min(Math.floor(minute), xgTimeline.length) - 1] ?? { home: 0, away: 0 }
   const latestRed = [...visibleEvents].reverse().find((e) => e.type === 'red-card')
   const inExtraTime = minute > 90
@@ -242,16 +210,22 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
         ? 'AFTER EXTRA TIME'
         : 'FULL TIME'
     : atBreak
-      ? 'HALF-TIME'
+      ? pausedAt === 45
+        ? 'HALF-TIME'
+        : `${pausedAt}' — SUBSTITUTIONS`
       : `${Math.floor(minute)}'${inExtraTime ? ' ET' : ''}`
+  const nextStop = !sim && stopAtWindows && !atBreak ? pausedAt : null
 
   return (
     <div className="mx-auto max-w-5xl">
       {/* Scoreboard */}
-      <div className="mb-5 rounded-2xl border border-white/10 bg-night-2/70 px-6 py-5">
+      <div className="mb-5 rounded-2xl border border-ink/10 bg-night-2/70 px-6 py-5">
         <div className="flex items-center justify-center gap-5 sm:gap-8">
           <span className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right font-display text-lg font-black uppercase tracking-widest sm:gap-3 sm:text-3xl" style={{ color: home.color }}>
-            <span className="truncate">{home.name}</span>
+            <span className="truncate">
+              <span className="sm:hidden">{home.shortName}</span>
+              <span className="hidden sm:inline">{home.name}</span>
+            </span>
             <TeamFlag teamId={home.id} className="h-4 shrink-0 sm:h-6" title="" />
           </span>
           <span className="font-display text-5xl font-black tabular-nums text-floodlight sm:text-7xl">
@@ -261,10 +235,13 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
           </span>
           <span className="flex min-w-0 flex-1 items-center gap-2 text-left font-display text-lg font-black uppercase tracking-widest sm:gap-3 sm:text-3xl" style={{ color: away.color }}>
             <TeamFlag teamId={away.id} className="h-4 shrink-0 sm:h-6" title="" />
-            <span className="truncate">{away.name}</span>
+            <span className="truncate">
+              <span className="sm:hidden">{away.shortName}</span>
+              <span className="hidden sm:inline">{away.name}</span>
+            </span>
           </span>
         </div>
-        <div className="mt-2 text-center font-display text-lg font-black tabular-nums text-card-yellow">
+        <div className="mt-2 text-center font-display text-lg font-black tabular-nums text-gold">
           {clockLabel}
         </div>
 
@@ -273,7 +250,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
           <button
             onClick={() => setPlaying((p) => !p)}
             disabled={atBreak}
-            className={`w-9 rounded-md border border-white/15 py-1.5 text-sm text-floodlight transition-colors hover:border-white/40 disabled:opacity-40 ${FOCUS_RING}`}
+            className={`w-9 rounded-md border border-ink/15 py-1.5 text-sm text-floodlight transition-colors hover:border-ink/40 disabled:opacity-40 ${FOCUS_RING}`}
             aria-label={playing ? 'Pause' : 'Play'}
           >
             {playing && !finished ? '⏸' : '▶'}
@@ -286,12 +263,12 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
             value={minute}
             disabled={atBreak}
             onChange={(e) => setMinute(Number(e.target.value))}
-            className={`h-1.5 min-w-40 flex-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-card-yellow disabled:opacity-40 ${FOCUS_RING}`}
+            className={`h-1.5 min-w-40 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-card-yellow disabled:opacity-40 ${FOCUS_RING}`}
             aria-label="Match minute"
           />
           <button
             onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length])}
-            className={`w-12 rounded-md border border-white/15 py-1.5 text-sm font-bold tabular-nums text-floodlight transition-colors hover:border-white/40 ${FOCUS_RING}`}
+            className={`w-12 rounded-md border border-ink/15 py-1.5 text-sm font-bold tabular-nums text-floodlight transition-colors hover:border-ink/40 ${FOCUS_RING}`}
             aria-label="Playback speed"
           >
             {speed}×
@@ -300,7 +277,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
             <button
               onClick={onDone}
               disabled={resuming}
-              className={`rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-white/40 hover:text-floodlight disabled:opacity-40 ${FOCUS_RING}`}
+              className={`rounded-md border border-ink/15 px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-ink/40 hover:text-floodlight disabled:opacity-40 ${FOCUS_RING}`}
             >
               Skip to result ▸
             </button>
@@ -320,28 +297,39 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
               🟥 {latestRed.player?.name} ({latestRed.teamId})
             </span>
           )}
+          {nextStop !== null && nextStop > 45 && (
+            <span className="whitespace-nowrap text-gold" title="Manager mode: the match stops at the substitution windows">
+              ⏸ next stop {nextStop}&#8242;
+            </span>
+          )}
         </div>
       </div>
 
       {showShootout && sim?.shootout ? (
         <PenaltyShootout shootout={sim.shootout} home={home} away={away} onDone={onDone} />
       ) : atBreak ? (
-        <HalftimeBreak
+        <PauseBreak
+          key={pausedAt}
           match={match}
-          firstHalf={firstHalf}
-          lineups={lineups}
+          live={live}
+          pausedAt={pausedAt}
+          script={script}
           home={home}
           away={away}
           resuming={resuming}
-          onResume={onResume}
+          stopAtWindows={stopAtWindows}
+          onStopAtWindowsChange={setStopAtWindows}
+          onResume={resumeFromPause}
         />
       ) : (
         <div className="grid gap-5">
-          {/* The floating 3D pitch-terrain — its own holographic stage, active
-              by default and lazy-loaded so three.js stays out of the main chunk. */}
-          <TerrainStage
-            momentumTimeline={momentumTimeline}
+          {/* The 3D stage: players and ball on the engine's possession data,
+              lazy-loaded so three.js stays out of the main chunk. */}
+          <MatchStage
+            sequences={sequences}
             events={events}
+            lineupLog={lineupLog}
+            momentumTimeline={momentumTimeline}
             minute={minute}
             duration={duration}
             home={home}
@@ -350,7 +338,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
           />
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
+            <div className="rounded-2xl border border-ink/10 bg-night-2/70 p-5">
               <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">The xG race</h2>
               <XgRaceChart
                 timeline={xgTimeline}
@@ -364,7 +352,7 @@ export function MatchSim({ match, firstHalf, sim, lineups, home, away, resuming,
               />
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-night-2/70 p-5">
+            <div className="rounded-2xl border border-ink/10 bg-night-2/70 p-5">
               <h2 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted">Live commentary</h2>
               <div
                 ref={commentaryScroll}

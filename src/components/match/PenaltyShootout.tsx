@@ -25,7 +25,7 @@ function kickLabel(kick: PenaltyKick): string {
 
 function TallyRow({ team, kicks, score, active }: { team: TeamInfo; kicks: PenaltyKick[]; score: number; active: boolean }) {
   return (
-    <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${active ? 'bg-white/5' : ''}`}>
+    <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${active ? 'bg-ink/5' : ''}`}>
       <span className="flex w-24 items-center gap-2 truncate text-sm font-bold text-floodlight sm:w-32">
         <TeamFlag teamId={team.id} className="h-3.5 shrink-0" title="" /> {team.shortName}
       </span>
@@ -80,9 +80,9 @@ export function PenaltyShootout({ shootout, home, away, onDone }: PenaltyShootou
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-night-2/80 p-6"
+      className="mx-auto max-w-2xl rounded-2xl border border-ink/10 bg-night-2/80 p-6"
     >
-      <h2 className="mb-1 text-center font-display text-2xl font-black uppercase tracking-widest text-card-yellow">
+      <h2 className="mb-1 text-center font-display text-2xl font-black uppercase tracking-widest text-gold">
         Penalty shootout
       </h2>
       <p className="mb-4 text-center text-xs text-muted">
@@ -94,15 +94,15 @@ export function PenaltyShootout({ shootout, home, away, onDone }: PenaltyShootou
       </p>
 
       {/* The goal */}
-      <div className="relative mx-auto mb-5 h-40 max-w-md overflow-hidden rounded-xl border border-white/10 bg-pitch">
+      <div className="relative mx-auto mb-5 h-40 max-w-md overflow-hidden rounded-xl border border-ink/10 bg-pitch">
         {/* goal frame */}
-        <div className="absolute left-[8%] right-[8%] top-5 h-24 rounded-sm border-2 border-floodlight/70 border-b-0 bg-white/[0.03]" />
+        <div className="absolute left-[8%] right-[8%] top-5 h-24 rounded-sm border-2 border-floodlight/70 border-b-0 bg-ink/[0.03]" />
         {/* net hint */}
         <div
           className="absolute left-[8%] right-[8%] top-5 h-24 opacity-20"
           style={{
             backgroundImage:
-              'repeating-linear-gradient(0deg, transparent 0 7px, rgba(238,245,240,0.5) 7px 8px), repeating-linear-gradient(90deg, transparent 0 7px, rgba(238,245,240,0.5) 7px 8px)',
+              'repeating-linear-gradient(0deg, transparent 0 7px, color-mix(in srgb, var(--color-ink) 50%, transparent) 7px 8px), repeating-linear-gradient(90deg, transparent 0 7px, color-mix(in srgb, var(--color-ink) 50%, transparent) 7px 8px)',
           }}
         />
         {/* keeper */}
@@ -149,7 +149,7 @@ export function PenaltyShootout({ shootout, home, away, onDone }: PenaltyShootou
             <motion.div
               key={`label-${revealed}`}
               className="absolute inset-x-0 bottom-3 text-center font-display text-xl font-black uppercase tracking-widest"
-              style={{ color: current.scored ? kicker?.color : '#e5484d' }}
+              style={{ color: current.scored ? kicker?.color : 'var(--color-card-red)' }}
               initial={{ opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}

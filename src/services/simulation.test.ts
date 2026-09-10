@@ -34,7 +34,8 @@ describe('insight seeding', () => {
     const second = await runSimulation(home, away, matchSimOptions(match))
     expect(second.monteCarlo).toEqual(first.monteCarlo)
     expect(first.monteCarlo.baseSeed).toBe(INSIGHT_SEED)
-  })
+    // Two full 1,000-replay insight runs on the possession engine.
+  }, 30000)
 
   it('memoizes the baseline per match id and pins it to the fixed seed', () => {
     const baseline = baselineMonteCarlo(match)

@@ -10,7 +10,7 @@ const KINDS = {
     label: 'Estimated rating',
     tooltip:
       'Editorial estimate written for this app (no FC 26 match found for this player). Not an official stat; every number is inspectable.',
-    className: 'border-card-yellow/40 bg-card-yellow/10 text-card-yellow',
+    className: 'border-gold/40 bg-gold/10 text-gold',
   },
   fc26: {
     icon: '◆',

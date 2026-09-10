@@ -6,6 +6,7 @@ import {
   HALFTIME_MINUTE,
   playFirstHalf,
   resumeMatch,
+  resumeUntil,
   sentOffIds,
   simulateMatch,
 } from './simulate'
@@ -113,21 +114,21 @@ describe('simulateMatch', () => {
   })
 })
 
+/** England's second-half XI with the front three benched for the bench outfielders. */
+function weakenedAway(): TeamSheet {
+  const replacements = away.bench.filter((p) => p.ratings.position !== 'GK')
+  expect(replacements.length).toBeGreaterThanOrEqual(3)
+  let next = 0
+  return {
+    ...away,
+    starters: away.starters.map((a) =>
+      a.slot.line === 'FWD' ? { slot: a.slot, player: replacements[next++] } : a,
+    ),
+  }
+}
+
 describe('playFirstHalf + resumeMatch', () => {
   const options = { knockout: true, homePossession: mexEng.real.possession.home / 100 }
-
-  /** England's second-half XI with the front three benched for the bench outfielders. */
-  function weakenedAway(): TeamSheet {
-    const replacements = away.bench.filter((p) => p.ratings.position !== 'GK')
-    expect(replacements.length).toBeGreaterThanOrEqual(3)
-    let next = 0
-    return {
-      ...away,
-      starters: away.starters.map((a) =>
-        a.slot.line === 'FWD' ? { slot: a.slot, player: replacements[next++] } : a,
-      ),
-    }
-  }
 
   it('is byte-identical to simulateMatch when nothing changes at the break', () => {
     let firstHalfReds = 0
@@ -204,5 +205,57 @@ describe('playFirstHalf + resumeMatch', () => {
     expect(runSecondHalfMonteCarlo(paused, paused.home.sheet, paused.away.sheet, 300, 4242)).toEqual(
       unchanged,
     )
+  })
+})
+
+describe('substitution windows (resumeUntil)', () => {
+  const options = { knockout: true, homePossession: mexEng.real.possession.home / 100 }
+
+  it('playing 45→60→75→end with unchanged sheets is byte-identical to the straight match', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const direct = simulateMatch(home, away, seed, options)
+      const paused = playFirstHalf(home, away, seed, options)
+      resumeUntil(paused, home, away, 60)
+      expect(paused.minutesPlayed).toBe(60)
+      resumeUntil(paused, home, away, 75)
+      expect(paused.minutesPlayed).toBe(75)
+      const finished = resumeMatch(paused, home, away)
+      expect(finished, `seed ${seed}`).toEqual(direct)
+    }
+  })
+
+  it('a substitution at 60 alters only the minutes after 60', () => {
+    let differ = 0
+    for (let seed = 1; seed <= 10; seed += 1) {
+      const direct = simulateMatch(home, away, seed, options)
+      const paused = playFirstHalf(home, away, seed, options)
+      resumeUntil(paused, home, away, 60)
+      const changed = resumeMatch(paused, home, weakenedAway())
+      expect(changed.events.filter((e) => e.minute <= 60)).toEqual(direct.events.filter((e) => e.minute <= 60))
+      expect(changed.xgTimeline.slice(0, 60)).toEqual(direct.xgTimeline.slice(0, 60))
+      // The scene sees the new XI from 60'.
+      const snapshot = changed.lineupLog.find((s) => s.minute === 60)
+      expect(snapshot).toBeDefined()
+      if (JSON.stringify(changed.events) !== JSON.stringify(direct.events)) differ += 1
+    }
+    expect(differ).toBeGreaterThan(0)
+  })
+
+  it('refuses to resume from a minute that is not a window', () => {
+    const paused = playFirstHalf(home, away, 2, options)
+    expect(() => resumeUntil(paused, home, away, 50)).toThrow()
+    expect(() => resumeUntil(paused, home, away, 45)).toThrow()
+    resumeUntil(paused, home, away, 75)
+    expect(() => resumeUntil(paused, home, away, 60)).toThrow()
+    expect(() => resumeMatch(paused, home, away)).not.toThrow()
+  })
+
+  it('the remainder Monte Carlo works from a window and stays reproducible', () => {
+    const paused = playFirstHalf(home, away, 77, options)
+    resumeUntil(paused, home, away, 60)
+    const unchanged = runSecondHalfMonteCarlo(paused, paused.home.sheet, paused.away.sheet, 200, 4242)
+    expect(runSecondHalfMonteCarlo(paused, paused.home.sheet, paused.away.sheet, 200, 4242)).toEqual(unchanged)
+    expect(paused.minutesPlayed).toBe(60)
+    expect(unchanged.homeWinPct + unchanged.awayWinPct).toBeCloseTo(100, 0)
   })
 })

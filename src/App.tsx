@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SiteFooter } from './components/brand/SiteFooter'
+import { SiteHeader } from './components/brand/SiteHeader'
 import { BracketPage } from './pages/BracketPage'
 import { HowItWorksPage } from './pages/HowItWorksPage'
 import { IntroPage } from './pages/IntroPage'
@@ -28,8 +29,11 @@ export default function App() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
+  const intro = location.pathname === '/'
+
   return (
     <>
+      {!intro && <SiteHeader />}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route

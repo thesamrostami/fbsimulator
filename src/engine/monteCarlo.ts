@@ -20,12 +20,12 @@ export function runMonteCarlo(
 }
 
 /**
- * Monte Carlo over just the second half: every run clones the frozen
- * half-time state (same score, cards and rng-independent history so far),
- * applies the candidate sheets and replays minutes 46+ from a derived seed.
- * The seed derivation matches runMonteCarlo's, so two calls with the same
- * baseSeed differ only by the sheets — the delta is the change, not
- * sampling noise.
+ * Monte Carlo over the rest of a paused match: every run clones the frozen
+ * state (same score, cards and history so far — at the break or at a
+ * substitution window), applies the candidate sheets and replays the
+ * remaining minutes from a derived seed. The seed derivation matches
+ * runMonteCarlo's, so two calls with the same baseSeed differ only by the
+ * sheets — the delta is the change, not sampling noise.
  */
 export function runSecondHalfMonteCarlo(
   state: HalftimeState,

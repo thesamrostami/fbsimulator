@@ -1,23 +1,69 @@
 @import "tailwindcss";
 
-@theme {
-  /* Stadium-at-night palette */
+/*
+ * Design tokens. The DARK theme is the brand ("stadium at night") and the
+ * default; LIGHT is a daylight broadcast studio: the same greens, an off-white
+ * ground and deep-green ink. Tailwind utilities reference these variables at
+ * runtime (`bg-night-2` → `var(--color-night-2)`), so the overrides under
+ * [data-theme="light"] re-theme every component without touching markup.
+ *
+ * Semantic roles (the names are historical):
+ *   night        page background          night-2   raised surface
+ *   floodlight   primary text             muted     secondary text
+ *   ink          the "white" of overlays and hairlines — ink/10 is a border,
+ *                ink/5 a subtle fill; flips to near-black on light
+ *   gold         text/border accent for highlights (a darker amber on light)
+ *   card-yellow  the object colour of a yellow card — never text
+ *   shade        shadow colour
+ *   pitch/-2     grass stripes            pitch-line  pitch markings
+ *   brand-a/-b   the wordmark gradient (green → blue)
+ */
+@theme static {
   --color-night: #050d09;
   --color-night-2: #081a10;
-  --color-pitch: #0d2818;
-  --color-pitch-line: #1d4630;
+  --color-ink: #eef5f0;
   --color-floodlight: #eef5f0;
   --color-muted: #7d9488;
+  --color-shade: #000000;
 
-  /* Team accents */
-  --color-england: #5aa9ff;
+  --color-pitch: #0d2818;
+  --color-pitch-2: #0f2e1c;
+  --color-pitch-line: #1d4630;
+  --color-pitch-mark: #eef5f0;
+
+  --color-brand-a: #2fbf71;
+  --color-brand-b: #5aa9ff;
+  /* Legacy names for the two brand colours, still used by a few badges. */
   --color-mexico: #2fbf71;
+  --color-england: #5aa9ff;
 
-  /* Match events */
+  --color-gold: #f5c518;
   --color-card-yellow: #f5c518;
   --color-card-red: #e5484d;
 
-  --font-display: "Arial Narrow", "Helvetica Neue Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", "DIN Condensed", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  --color-night: #f3f6f1;
+  --color-night-2: #ffffff;
+  --color-ink: #0b1a12;
+  --color-floodlight: #0b1a12;
+  --color-muted: #5b6f64;
+  --color-shade: #142a1c;
+
+  --color-pitch: #2a8a4c;
+  --color-pitch-2: #2f9553;
+  --color-pitch-line: #7fcf9c;
+  --color-pitch-mark: #ffffff;
+
+  --color-brand-a: #168d4f;
+  --color-brand-b: #2c6fd1;
+  --color-mexico: #168d4f;
+  --color-england: #2c6fd1;
+
+  --color-gold: #8a6300;
+  --color-card-red: #c8323a;
 }
 
 html,
@@ -26,10 +72,29 @@ body,
   height: 100%;
 }
 
+html {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
 body {
   background: var(--color-night);
+  color: var(--color-floodlight);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow-x: hidden;
+}
+
+/* A theme switch cross-fades instead of snapping: ThemeProvider adds this
+   class for the duration of the change only, so it never slows other motion. */
+html.theme-switching,
+html.theme-switching * {
+  transition:
+    background-color 220ms ease-out,
+    border-color 220ms ease-out,
+    color 220ms ease-out !important;
 }
 
 /*
@@ -45,8 +110,15 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(90, 169, 255, 0.08), transparent 60%),
-    radial-gradient(900px 500px at 15% 110%, rgba(47, 191, 113, 0.07), transparent 60%);
+    radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--color-brand-b) 8%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 15% 110%, color-mix(in srgb, var(--color-brand-a) 7%, transparent), transparent 60%);
+}
+
+/* Daylight: a soft sky-to-grass wash instead of floodlight glows. */
+:root[data-theme="light"] body::before {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--color-brand-b) 12%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 15% 110%, color-mix(in srgb, var(--color-brand-a) 14%, transparent), transparent 60%);
 }
 
 /*
@@ -60,7 +132,7 @@ html {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(238, 245, 240, 0.25) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 25%, transparent) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -74,14 +146,14 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(238, 245, 240, 0.16);
+  background-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(238, 245, 240, 0.38);
+  background-color: color-mix(in srgb, var(--color-ink) 38%, transparent);
 }
 
 /*
@@ -95,7 +167,7 @@ html {
 
 .scroll-area:hover,
 .scroll-area:focus-within {
-  scrollbar-color: rgba(238, 245, 240, 0.25) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 25%, transparent) transparent;
 }
 
 .scroll-area::-webkit-scrollbar-thumb {
@@ -106,11 +178,11 @@ html {
 
 .scroll-area:hover::-webkit-scrollbar-thumb,
 .scroll-area:focus-within::-webkit-scrollbar-thumb {
-  background-color: rgba(238, 245, 240, 0.16);
+  background-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
 }
 
 .scroll-area:hover::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(238, 245, 240, 0.38);
+  background-color: color-mix(in srgb, var(--color-ink) 38%, transparent);
 }
 
 /*
